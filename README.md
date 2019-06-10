@@ -1,6 +1,12 @@
 Well Mapping Application
 for Louisiana State University Petroleum Engineering Department
 
+### Features
+* point markers are clustered based on zoom level
+* clicking a point cluster will zoom into the extent of underlying Features
+* hovering on point will display Name
+* clicking will display a popupOpts
+* text filtering?
 
 ### Things to Note
 * the parish boundary is defined by counties.json. If the boundaries change, this will need to be updated.
