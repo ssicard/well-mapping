@@ -80,88 +80,6 @@ legend.onAdd = function (map) {
 }
 
 info.addTo(map);
-//
-// // custom zoom bar control that includes a Zoom Home function
-// L.Control.zoomHome = L.Control.extend({
-//     options: {
-//         position: 'topleft',
-//         zoomInText: '<b>+</b>',
-//         zoomInTitle: 'Zoom in',
-//         zoomOutText: '<b>-</b>',
-//         zoomOutTitle: 'Zoom out',
-//         zoomHomeText: '<i class="fa fa-home" style="line-height:1.65;"></i>',
-//         zoomHomeTitle: 'Zoom home'
-//     },
-//
-//     onAdd: function (map) {
-//         var controlName = 'gin-control-zoom',
-//             container = L.DomUtil.create('div', controlName + ' leaflet-bar'),
-//             options = this.options;
-//
-//         this._zoomInButton = this._createButton(options.zoomInText, options.zoomInTitle,
-//         controlName + '-in', container, this._zoomIn);
-//         this._zoomHomeButton = this._createButton(options.zoomHomeText, options.zoomHomeTitle,
-//         controlName + '-home', container, this._zoomHome);
-//         this._zoomOutButton = this._createButton(options.zoomOutText, options.zoomOutTitle,
-//         controlName + '-out', container, this._zoomOut);
-//
-//         this._updateDisabled();
-//         map.on('zoomend zoomlevelschange', this._updateDisabled, this);
-//
-//         return container;
-//     },
-//
-//     onRemove: function (map) {
-//         map.off('zoomend zoomlevelschange', this._updateDisabled, this);
-//     },
-//
-//     _zoomIn: function (e) {
-//         this._map.zoomIn(e.shiftKey ? 3 : 1);
-//     },
-//
-//     _zoomOut: function (e) {
-//         this._map.zoomOut(e.shiftKey ? 3 : 1);
-//     },
-//
-//     _zoomHome: function (e) {
-//         map.setView([lat, lng], zoom);
-//     },
-//
-//     _createButton: function (html, title, className, container, fn) {
-//         var link = L.DomUtil.create('a', className, container);
-//         link.innerHTML = html;
-//         link.href = '#';
-//         link.title = title;
-//
-//         L.DomEvent.on(link, 'mousedown dblclick', L.DomEvent.stopPropagation)
-//             .on(link, 'click', L.DomEvent.stop)
-//             .on(link, 'click', fn, this)
-//             .on(link, 'click', this._refocusOnMap, this);
-//
-//         return link;
-//     },
-//
-//     _updateDisabled: function () {
-//         var map = this._map,
-//             className = 'leaflet-disabled';
-//
-//         L.DomUtil.removeClass(this._zoomInButton, className);
-//         L.DomUtil.removeClass(this._zoomOutButton, className);
-//
-//         if (map._zoom === map.getMinZoom()) {
-//             L.DomUtil.addClass(this._zoomOutButton, className);
-//         }
-//         if (map._zoom === map.getMaxZoom()) {
-//             L.DomUtil.addClass(this._zoomInButton, className);
-//         }
-//     }
-// });
-// // add the new control to the map
-// var zoomHome = new L.Control.zoomHome();
-// zoomHome.addTo(map);
-
-
-
 
 //=============================== Well Mapping ==========================================//
 
@@ -190,44 +108,15 @@ var points = L.geoCsv (null, {
         }
         popup += "</table></popup-content>";
         layer.bindPopup(popup, popupOpts);
-    },
-    filter: function(feature, layer) {
-        total += 1;
-        if (!filterString) {
-            hits += 1;
-            return true;
-        }
-        var hit = false;
-        var lowerFilterString = filterString.toLowerCase().strip();
-        $.each(feature.properties, function(k, v) {
-            var value = v.toLowerCase();
-            if (value.indexOf(lowerFilterString) !== -1) {
-                hit = true;
-                hits += 1;
-                return false;
-            }
-        });
-        return hit;
     }
 });
 
 var hits = 0;
 var total = 0;
-var filterString;
 var markers = new L.MarkerClusterGroup();
 var dataCsv;
 
 var addCsvMarkers = function() {
-    hits = 0;
-    total = 0;
-    filterString = document.getElementById('filter-string').value;
-
-    if (filterString) {
-        $("#clear").fadeIn();
-    } else {
-        $("#clear").fadeOut();
-    }
-
     map.removeLayer(markers);
     points.clearLayers();
 
@@ -243,9 +132,6 @@ var addCsvMarkers = function() {
         }
     } catch(err) {
         // pass
-    }
-    if (total > 0) {
-        $('#search-results').html("Showing " + hits + " of " + total);
     }
     return false;
 };
@@ -305,28 +191,21 @@ $(document).ready( function() {
             addCsvMarkers();
         }
     });
-
-    $("#clear").click(function(evt){
-        evt.preventDefault();
-        $("#filter-string").val("").focus();
-        addCsvMarkers();
-    });
-
 });
 
 //=============================== Shape Files ==========================================//
-var shpfile = new L.Shapefile('gas_and_oil_fields.zip', {
-			onEachFeature: function(feature, layer) {
-				if (feature.properties) {
-					layer.bindPopup(Object.keys(feature.properties).map(function(k) {
-						return k + ": " + feature.properties[k];
-					}).join("<br />"), {
-						maxHeight: 200
-					});
-				}
-			}
-		});
-		shpfile.addTo(map);
-    shpfile.once("data:loaded", function() {
-      console.log("finished loaded shapefile");
-  });
+// var shpfile = new L.Shapefile('gas_and_oil_fields.zip', {
+// 			onEachFeature: function(feature, layer) {
+// 				if (feature.properties) {
+// 					layer.bindPopup(Object.keys(feature.properties).map(function(k) {
+// 						return k + ": " + feature.properties[k];
+// 					}).join("<br />"), {
+// 						maxHeight: 200
+// 					});
+// 				}
+// 			}
+// 		});
+// 		shpfile.addTo(map);
+//     shpfile.once("data:loaded", function() {
+//       console.log("finished loaded shapefile");
+//   });
