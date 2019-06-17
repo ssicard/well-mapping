@@ -1,5 +1,7 @@
 var basemap = new L.TileLayer(baseUrl, {maxZoom: 20, attribution: baseAttribution, subdomains: subdomains, opacity: opacity});
+
 var center = new L.LatLng(0, 0);
+
 var map = new L.Map('map', {center: center, zoom: 2, maxZoom: maxZoom, layers: [basemap]});
 
 
@@ -9,31 +11,20 @@ var map = new L.Map('map', {center: center, zoom: 2, maxZoom: maxZoom, layers: [
 jQuery.getJSON(parishesUrl, function(data){
   let parishStyle = function (feature) {
     return {
-      //change border color
-      dashArray: '',
-      color: '#15560d',
-      fillColor: '#15560d'
+      fillColor: '#15560d',
+      color: '#15560d'
     }
   }
 
   let geoJSONOptions = {
     onEachFeature: onEachFeature,
     style: parishStyle,
-    filter: function(feature, layer) {
+    filter: function(feature, parishLayer) {
       return feature.properties.STATE == 22;
     }
   }
 
-  parishes = L.geoJson(data, geoJSONOptions).addTo(map);
-
-  try {
-      var bounds = parishes.getBounds();
-      if (bounds) {
-          map.fitBounds(bounds);
-      }
-  } catch(err) {
-      // pass
-  }
+  geojson = L.geoJson(data, geoJSONOptions).addTo(map);
 });
 
 function onEachFeature(feature, parishLayer) {
@@ -52,28 +43,26 @@ function highlightFeature(e) {
     dashArray: '',
     fillOpacity: 0.7
   });
+
 }
 
 function resetHighlight(e) {
-  parishes.resetStyle(e.target);
-  // info.update();
+  geojson.resetStyle(e.target);
+  //info.update();
+}
+
+function zoomToFeature(e) {
+  map.fitBounds(e.target.getBounds());
 }
 
 function displayProdDataByParish(e) {
   var parishLayer = e.target;
+
   var parishCode = translateToParishCode(parishLayer.feature.properties.COUNTY);
-  // console.log(parishCode);
-
-  //get data from csv
-
-  //Update Parish Info Bar
   if(parishCode > 0 && parishCode < 69){
     info.update(parishLayer.feature.properties);
   }
-  else{
-    info.update();
-  }
-
+  else{  }
 }
 
 function translateToParishCode(countyCode){
@@ -91,17 +80,12 @@ info.onAdd = function (map) {
 
 info.update = function (props) {
   this._div.innerHTML = '<h4> Parish Production Information </h4>' + (props ?
-  '<b> Parish: </b> ' + props.NAME : 'Click on a state');
+  '<b> Parish: </b><br />' + props.NAME : 'Click a parish for production information.');
 };
 
 info.addTo(map);
 
-<<<<<<< Updated upstream
 //=============================== Well Mapping ==========================================//
-=======
-
-//=============================== Begin Well Mapping ==========================================//
->>>>>>> Stashed changes
 
 var popupOpts = {
     autoPanPadding: new L.Point(5, 50),
@@ -111,11 +95,10 @@ var popupOpts = {
 var wellPoints = L.geoCsv (null, {
     firstLineTitles: true,
     fieldSeparator: fieldSeparator,
-<<<<<<< Updated upstream
     onEachFeature: function (feature, layer) {
         var popup = '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
         for (var clave in feature.properties) {
-            var title = points.getPropertyTitle(clave).strip();
+            var title = wellPoints.getPropertyTitle(clave).strip();
             var attr = feature.properties[clave];
             if (title == labelColumn) {
                 layer.bindLabel(feature.properties[clave], {className: 'map-label'});
@@ -132,56 +115,26 @@ var wellPoints = L.geoCsv (null, {
     }
 });
 
-var hits = 0;
-var total = 0;
-=======
-    onEachFeature: displayWellPopup
-});
-
-function displayWellPopup(feature, layer){
-  var popup = '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
-  for (var clave in feature.properties) {
-      var title = wellPoints.getPropertyTitle(clave).strip();
-      var attr = feature.properties[clave];
-      if (title == labelColumn) {
-          layer.bindLabel(feature.properties[clave], {className: 'map-label'});
-      }
-      if (attr.indexOf('http') === 0) {
-          attr = '<a target="_blank" href="' + attr + '">'+ attr + '</a>';
-      }
-      if (attr) {
-          popup += '<tr><th>'+title+'</th><td>'+ attr +'</td></tr>';
-      }
-  }
-  popup += "</table></popup-content>";
-  layer.bindPopup(popup, popupOpts);
-}
-
->>>>>>> Stashed changes
-var markers = new L.MarkerClusterGroup();
+var wellMarkers = new L.MarkerClusterGroup();
 var wellCsv;
 
 var addCsvMarkers = function() {
-    map.removeLayer(markers);
+    map.removeLayer(wellMarkers);
     wellPoints.clearLayers();
 
-    markers = new L.MarkerClusterGroup(clusterOptions);
+    wellMarkers = new L.MarkerClusterGroup(clusterOptions);
     wellPoints.addData(wellCsv);
-    markers.addLayer(wellPoints);
+    wellMarkers.addLayer(wellPoints);
 
-    map.addLayer(markers);
-<<<<<<< Updated upstream
+    map.addLayer(wellMarkers);
     try {
-        var bounds = markers.getBounds();
+        var bounds = wellMarkers.getBounds();
         if (bounds) {
             map.fitBounds(bounds);
         }
     } catch(err) {
         // pass
     }
-=======
-
->>>>>>> Stashed changes
     return false;
 };
 
@@ -191,78 +144,38 @@ if(typeof(String.prototype.strip) === "undefined") {
     };
 }
 
-map.addLayer(markers);
+map.addLayer(wellMarkers);
 
-//=============================== End Well Mapping ==========================================//
-//=============================== Begin Production Data Helpers ==========================================//
-
-
-function parseProdData(csv){
-  console.log('parsing');
-
-  //STEPS:
-  //parse data into something i can access
-  //access the thing and associate it with parish condensed
-
-  //what is the something i can access
-}
-
-//=============================== End Production Data Helpers ==========================================//
-//=============================== Begin File Loading ==========================================//
-
+//=============================================== FILE LOADING =============================================================//
 $(document).ready( function() {
-    $.ajax (
-      {
+    $.ajax ({
         type:'GET',
         dataType:'text',
         url: wellCoordsUrl,
         contentType: "text/csv; charset=utf-8",
         error: function() {
-            alert('Error retrieving csv file');
+            alert('Error loading' + wellCoordsUrl);
         },
         success: function(csv) {
             wellCsv = csv;
             addCsvMarkers();
         }
-    }
-  );
-  $.ajax (
-    {
-      type:'GET',
-      dataType:'text',
-      url: prodDetailsUrl,
-      contentType: "text/csv; charset=utf-8",
-      error: function() {
-          alert('Error retrieving csv file');
-      },
-      success: function(csv) {
-        parseProdData(csv);
-      }
-   }
-  );
+    });
+    $.ajax ({
+        type:'GET',
+        dataType:'text',
+        url: prodDetailsUrl,
+        contentType: "text/csv; charset=utf-8",
+        error: function() {
+            alert('Error loading' + prodDetailsUrl);
+        },
+        success: function(csv) {
+            console.log('parse time');
+        }
+    });
 
-  $("#clear").click(function(evt){
+    $("#clear").click(function(evt){
         evt.preventDefault();
         addCsvMarkers();
-  });
+    });
 });
-
-//=============================== Production Data ==========================================//
-
-//=============================== Shape Files ==========================================//
-// var shpfile = new L.Shapefile('gas_and_oil_fields.zip', {
-// 			onEachFeature: function(feature, layer) {
-// 				if (feature.properties) {
-// 					layer.bindPopup(Object.keys(feature.properties).map(function(k) {
-// 						return k + ": " + feature.properties[k];
-// 					}).join("<br />"), {
-// 						maxHeight: 200
-// 					});
-// 				}
-// 			}
-// 		});
-// 		shpfile.addTo(map);
-//     shpfile.once("data:loaded", function() {
-//       console.log("finished loaded shapefile");
-//   });
-//=============================== End File Loading ==========================================//
