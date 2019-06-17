@@ -30,7 +30,8 @@ function onEachFeature(feature, layer) {
     layer.on({
         mouseover: highlightFeature,
         mouseout: resetHighlight,
-        click: zoomToFeature
+        click: displayProdDataByParish
+        // click: zoomToFeature
     });
 }
 
@@ -54,6 +55,33 @@ function resetHighlight(e) {
 
 function zoomToFeature(e) {
   map.fitBounds(e.target.getBounds());
+}
+
+function displayProdDataByParish(e) {
+  var layer = e.target;
+
+  console.log("counties.csv: " + layer.feature.properties.NAME + ", " + layer.feature.properties.COUNTY);
+  var parishCode = translateToParishCode(layer.feature.properties.COUNTY);
+  console.log(parishCode);
+}
+
+function translateToParishCode(countyCode){
+  code = parseInt(countyCode);
+  return (code+001)/2;
+/*
+    case __: //whole state, statewide
+      return 65;
+    case __: //atchafalaya bay
+      return 66;
+    case __: //coastwide
+      return 67;
+    case __: //offshore
+      return 68;
+
+    default: //out of state
+      return 69;
+  }
+  */
 }
 
 var info = L.control();
@@ -311,5 +339,6 @@ $(document).ready( function() {
         $("#filter-string").val("").focus();
         addCsvMarkers();
     });
-
 });
+
+//=============================== Production Data ==========================================//
