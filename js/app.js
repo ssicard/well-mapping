@@ -1,13 +1,10 @@
 var basemap = new L.TileLayer(baseUrl, {maxZoom: 20, attribution: baseAttribution, subdomains: subdomains, opacity: opacity});
-
 var center = new L.LatLng(0, 0);
-
 var map = new L.Map('map', {center: center, zoom: 2, maxZoom: maxZoom, layers: [basemap]});
 
 
 //=============================== Parish Boundaries ==========================================//
-
-//json from http://eric.clst.org/tech/usgeojson/
+//json adapted from http://eric.clst.org/tech/usgeojson/
 jQuery.getJSON(parishesUrl, function(data){
   let parishStyle = function (feature) {
     return {
@@ -79,13 +76,32 @@ info.onAdd = function (map) {
 }
 
 info.update = function (props) {
-  this._div.innerHTML = '<h4> Parish Production Information </h4>' + (props ?
-  '<b> Parish: </b><br />' + props.NAME : 'Click a parish for production information.');
+  this._div.innerHTML = '<h4> Parish Production Information </h4>';
+  if(props){
+    details = findParishProdDetails(translateToParishCode(props.COUNTY));
+    this._div.innerHTML += '<b> Parish: </b>' + props.NAME;
+    if(details==null){
+      this._div.innerHTML += '</br> <b> Parish Code: </b>' + translateToParishCode(props.COUNTY);
+    }
+    else{
+      var propValue;
+      for(var propName in details){
+        propValue = details[propName];
+        this._div.innerHTML += '</br> <b>' + propName + ':</b> ' + propValue;
+      }
+    }
+  }
+  else{
+    this._div.innerHTML += 'Click for parish production information.'
+  }
+
 };
 
 info.addTo(map);
 
 //=============================== Well Mapping ==========================================//
+var wellMarkers = new L.MarkerClusterGroup();
+var wellCsv;
 
 var popupOpts = {
     autoPanPadding: new L.Point(5, 50),
@@ -115,9 +131,6 @@ var wellPoints = L.geoCsv (null, {
     }
 });
 
-var wellMarkers = new L.MarkerClusterGroup();
-var wellCsv;
-
 var addCsvMarkers = function() {
     map.removeLayer(wellMarkers);
     wellPoints.clearLayers();
@@ -146,8 +159,30 @@ if(typeof(String.prototype.strip) === "undefined") {
 
 map.addLayer(wellMarkers);
 
-//=============================================== FILE LOADING =============================================================//
+// =========================================== Production Details Popup ========================================================//
+var prodDetailsCsv;
+function populateProdDetails(){
+    Papa.parse(prodDetailsCsv, {
+      header: true,
+      dynamicTyping: true,
+      delimiter: "^",
+      complete: function(results) {
+        prodDetails = results.data;
+      }
+    });
+}
+
+function findParishProdDetails(parishCode){
+  for(i = 0; i < prodDetails.length; i++){
+    if(parishCode == prodDetails[i].PARISH_CODE){
+      return prodDetails[i];
+    }
+  }
+  return null;
+}
+//=============================================== File Loading =============================================================//
 $(document).ready( function() {
+
     $.ajax ({
         type:'GET',
         dataType:'text',
@@ -170,7 +205,8 @@ $(document).ready( function() {
             alert('Error loading' + prodDetailsUrl);
         },
         success: function(csv) {
-            console.log('parse time');
+            prodDetailsCsv = csv;
+            populateProdDetails();
         }
     });
 
