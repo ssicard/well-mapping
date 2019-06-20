@@ -4,6 +4,8 @@ var map = new L.Map('map', {center: center, zoom: 2, maxZoom: maxZoom, layers: [
 
 
 //=============================== Parish Boundaries ==========================================//
+var prevClickedParish;
+
 //json adapted from http://eric.clst.org/tech/usgeojson/
 jQuery.getJSON(parishesUrl, function(data){
   let parishStyle = function (feature) {
@@ -26,26 +28,22 @@ jQuery.getJSON(parishesUrl, function(data){
 
 function onEachFeature(feature, parishLayer) {
     parishLayer.on({
-        mouseover: highlightFeature,
-        mouseout: resetHighlight,
         click: displayProdDataByParish
     });
 }
 
-function highlightFeature(e) {
-  var parishLayer = e.target;
-
+function highlightFeature(parishLayer) {
   parishLayer.setStyle({
     weight: 5,
     dashArray: '',
     fillOpacity: 0.7
   });
 
+  prevClickedParish = parishLayer;
 }
 
-function resetHighlight(e) {
-  geojson.resetStyle(e.target);
-  //info.update();
+function resetHighlight() {
+  geojson.resetStyle(prevClickedParish);
 }
 
 function zoomToFeature(e) {
@@ -54,9 +52,13 @@ function zoomToFeature(e) {
 
 function displayProdDataByParish(e) {
   var parishLayer = e.target;
+  if(prevClickedParish!=null){
+    resetHighlight();
+  }
 
   var parishCode = translateToParishCode(parishLayer.feature.properties.COUNTY);
   if(parishCode > 0 && parishCode < 69){
+    highlightFeature(parishLayer);
     info.update(parishLayer.feature.properties);
   }
   else{  }
@@ -78,17 +80,29 @@ info.onAdd = function (map) {
 info.update = function (props) {
   this._div.innerHTML = '<h4> Parish Production Information </h4>';
   if(props){
-    details = findParishProdDetails(translateToParishCode(props.COUNTY));
+    var details = findParishProdDetails(translateToParishCode(props.COUNTY));
     this._div.innerHTML += '<b> Parish: </b>' + props.NAME;
+
     if(details==null){
       this._div.innerHTML += '</br> <b> Parish Code: </b>' + translateToParishCode(props.COUNTY);
     }
     else{
-      var propValue;
-      for(var propName in details){
-        propValue = details[propName];
-        this._div.innerHTML += '</br> <b>' + propName + ':</b> ' + propValue;
+      console.log("else");
+      var information = findParishProdInfo(details.OGP_SEQ_NUM);
+      if(information != null){
+        var propValue;
+        for(var propName in information){
+          console.log("prodInfo");
+          propValue = information[propName];
+          this._div.innerHTML += '</br> <b>' + propName + ':</b> ' + propValue;
+        }
       }
+
+        var propValue;
+        for(var propName in details){
+          propValue = details[propName];
+          this._div.innerHTML += '</br> <b>' + propName + ':</b> ' + propValue;
+        }
     }
   }
   else{
@@ -161,6 +175,19 @@ map.addLayer(wellMarkers);
 
 // =========================================== Production Details Popup ========================================================//
 var prodDetailsCsv;
+var prodCsv;
+
+function populateProd(){
+  Papa.parse(prodCsv, {
+    header: true,
+    dynamicTyping: true,
+    delimiter: "^",
+    complete: function(results) {
+      prodInfo = results.data;
+    }
+  });
+}
+
 function populateProdDetails(){
     Papa.parse(prodDetailsCsv, {
       header: true,
@@ -180,9 +207,17 @@ function findParishProdDetails(parishCode){
   }
   return null;
 }
+
+function findParishProdInfo(ogpSeqNum){
+  for(i = 0; i < prodInfo.length; i++){
+    if(ogpSeqNum == prodInfo[i].OGP_SEQ_NUM){
+      return prodInfo[i];
+    }
+  }
+  return null;
+}
 //=============================================== File Loading =============================================================//
 $(document).ready( function() {
-
     $.ajax ({
         type:'GET',
         dataType:'text',
@@ -207,6 +242,19 @@ $(document).ready( function() {
         success: function(csv) {
             prodDetailsCsv = csv;
             populateProdDetails();
+        }
+    });
+    $.ajax ({
+        type:'GET',
+        dataType:'text',
+        url: prodUrl,
+        contentType: "text/csv; charset=utf-8",
+        error: function() {
+            alert('Error loading' + prodUrl);
+        },
+        success: function(csv) {
+            prodCsv = csv;
+            populateProd();
         }
     });
 
