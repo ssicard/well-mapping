@@ -52,6 +52,8 @@ function zoomToFeature(e) {
 
 function displayProdDataByParish(e) {
   var parishLayer = e.target;
+  // console.log("displayProdDataByParish");
+  // console.log(e.target);
   if(prevClickedParish!=null){
     resetHighlight();
   }
@@ -87,7 +89,6 @@ info.update = function (props) {
       this._div.innerHTML += '</br> <b> Parish Code: </b>' + translateToParishCode(props.COUNTY);
     }
     else{
-      console.log("else");
       var information = findParishProdInfo(details.OGP_SEQ_NUM);
       if(information != null){
         var propValue;
@@ -96,13 +97,23 @@ info.update = function (props) {
           propValue = information[propName];
           this._div.innerHTML += '</br> <b>' + propName + ':</b> ' + propValue;
         }
+        this._div.innerHTML +='</br> <b> field: </b> ' + information.FIELD_ID;
       }
 
-        var propValue;
-        for(var propName in details){
-          propValue = details[propName];
-          this._div.innerHTML += '</br> <b>' + propName + ':</b> ' + propValue;
-        }
+      //DISPLAY ALL PROD DETAILS
+        // var propValue;
+        // for(var propName in details){
+        //   console.log(propName);
+        //   propValue = details[propName];
+        //   this._div.innerHTML += '</br> <b>' + propName + ':</b> ' + propValue;
+        // }
+
+        this._div.innerHTML +=
+           '</br> <b> Number of Producers:</b>'
+          +'</br> <b> Number of Injectors:</b>'
+          +'</br> <b> List of All Fields in Parish: </b>'
+          +'</br> <b> Date Created:</b>' + details.CREATE_DATE
+          +'</br> <b> Date Updated:</b>' + details.UPDATE_DATE
     }
   }
   else{
@@ -115,42 +126,60 @@ info.addTo(map);
 
 //=============================== Well Mapping ==========================================//
 var wellMarkers = new L.MarkerClusterGroup();
-var wellCsv;
+var wellCoordsCsv;
+
+var wellPoints = L.geoCsv (null, {
+    firstLineTitles: true,
+    fieldSeparator: fieldSeparator,
+    onEachFeature: createWellPopup
+});
 
 var popupOpts = {
     autoPanPadding: new L.Point(5, 50),
     autoPan: true
 };
 
-var wellPoints = L.geoCsv (null, {
-    firstLineTitles: true,
-    fieldSeparator: fieldSeparator,
-    onEachFeature: function (feature, layer) {
-        var popup = '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
-        for (var clave in feature.properties) {
-            var title = wellPoints.getPropertyTitle(clave).strip();
-            var attr = feature.properties[clave];
-            if (title == labelColumn) {
-                layer.bindLabel(feature.properties[clave], {className: 'map-label'});
-            }
-            if (attr.indexOf('http') === 0) {
-                attr = '<a target="_blank" href="' + attr + '">'+ attr + '</a>';
-            }
-            if (attr) {
-                popup += '<tr><th>'+title+'</th><td>'+ attr +'</td></tr>';
-            }
-        }
-        popup += "</table></popup-content>";
-        layer.bindPopup(popup, popupOpts);
+function createWellPopup(feature, layer){
+  //TODO MAKE SURE THAT IT IS A PRODUCER OR INJECTOR
+  var popup = '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
+  var well = findWellInfo(feature.properties.well_serial_num);
+
+  if(well == null){
+    popup += 'Something went wrong';
+  }
+  else{
+    popup += '<tr><th> Well Serial Number </th><td>'+ feature.properties.well_serial_num +'</td></tr>';
+    popup += '<tr><th> Well Name </th><td>' + well.WELL_NAME + '</td></tr>';
+    popup += '<tr><th> Spud Date </th><td>' + well.SPUD_DATE + '</td></tr>';
+
+    var status = well.WELL_STATUS_CODE;
+    if(status == 9){
+      popup += '<tr><th> Producer/Injector </th><td> Injector /td></tr>';
     }
-});
+    else if(status == 10){
+      popup += '<tr><th> Producer/Injector </th><td> Producer </td></tr>';
+    }
+
+    popup += '<tr><th> Status Date </th><td>'+ well.UPDATE_DATE + '</td></tr>';
+    popup += '<tr><th> Date Last Updated </th><td>'+ feature.properties.update_date +'</td></tr>';
+
+    popup += '<tr><th> Field Id </th><td>'+ well.FIELD_ID+'</td></tr>';
+    var fieldName = findFieldName(well.FIELD_ID);
+    if(fieldName != null){
+      popup += '<tr><th> Field Name </th><td>'+ fieldName +'</td></tr>';
+    }
+  }
+
+  popup += "</table></popup-content>";
+  layer.bindPopup(popup, popupOpts);
+}
 
 var addCsvMarkers = function() {
     map.removeLayer(wellMarkers);
     wellPoints.clearLayers();
 
     wellMarkers = new L.MarkerClusterGroup(clusterOptions);
-    wellPoints.addData(wellCsv);
+    wellPoints.addData(wellCoordsCsv);
     wellMarkers.addLayer(wellPoints);
 
     map.addLayer(wellMarkers);
@@ -173,9 +202,11 @@ if(typeof(String.prototype.strip) === "undefined") {
 
 map.addLayer(wellMarkers);
 
-// =========================================== Production Details Popup ========================================================//
+// =========================================== Populate CSV Arrays ========================================================//
 var prodDetailsCsv;
 var prodCsv;
+var wellInfoCsv;
+var fieldNamesCsv;
 
 function populateProd(){
   Papa.parse(prodCsv, {
@@ -199,6 +230,30 @@ function populateProdDetails(){
     });
 }
 
+function populateWellInfo(){
+  Papa.parse(wellInfoCsv, {
+    header:true,
+    dynamicTyping: true,
+    delimiter: "^",
+    complete: function(results) {
+      wellInfo = results.data;
+    }
+  })
+}
+
+function populateFieldNames(){
+  Papa.parse(fieldNamesCsv, {
+    header:true,
+    dynamicTyping: true,
+    delimiter: "^",
+    complete: function(results) {
+      fieldNames = results.data;
+    }
+  })
+}
+
+// =========================================== Helper Methods for CSVs ========================================================//
+
 function findParishProdDetails(parishCode){
   for(i = 0; i < prodDetails.length; i++){
     if(parishCode == prodDetails[i].PARISH_CODE){
@@ -216,8 +271,59 @@ function findParishProdInfo(ogpSeqNum){
   }
   return null;
 }
+
+function findWellInfo(wellSerialNum){
+  for(i = 0; i < wellInfo.length-1; i++){
+    if(wellSerialNum == wellInfo[i].WELL_SERIAL_NUM){
+      return wellInfo[i];
+    }
+  }
+  return null;
+}
+
+function findFieldName(fieldId){
+  console.log(fieldId);
+  for(i = 0; i < fieldNames.length-1; i++){
+    if(fieldId == fieldNames[i].FIELD_ID){
+      console.log("match");
+      console.log(fieldNames[i].FIELD_NAME);
+      return fieldNames[i].FIELD_NAME;
+    }
+  }
+  return null;
+}
+
 //=============================================== File Loading =============================================================//
+$(document).init( function() {
+    $.ajax ({
+        type:'GET',
+        dataType:'text',
+        url: wellUrl,
+        contentType: "text/csv; charset=utf-8",
+        error: function() {
+            alert('Error loading' + wellUrl);
+        },
+        success: function(csv) {
+            wellInfoCsv = csv;
+            populateWellInfo();
+        }
+    });
+});
+
 $(document).ready( function() {
+    $.ajax ({
+        type:'GET',
+        dataType:'text',
+        url: fieldNamesUrl,
+        contentType: "text/csv; charset=utf-8",
+        error: function() {
+            alert('Error loading' + fieldNamesUrl);
+        },
+        success: function(csv) {
+            fieldNamesCsv = csv;
+            populateFieldNames();
+        }
+    });
     $.ajax ({
         type:'GET',
         dataType:'text',
@@ -227,8 +333,21 @@ $(document).ready( function() {
             alert('Error loading' + wellCoordsUrl);
         },
         success: function(csv) {
-            wellCsv = csv;
+            wellCoordsCsv = csv;
             addCsvMarkers();
+        }
+    });
+    $.ajax ({
+        type:'GET',
+        dataType:'text',
+        url: wellUrl,
+        contentType: "text/csv; charset=utf-8",
+        error: function() {
+            alert('Error loading' + wellUrl);
+        },
+        success: function(csv) {
+            wellInfoCsv = csv;
+            populateWellInfo();
         }
     });
     $.ajax ({
