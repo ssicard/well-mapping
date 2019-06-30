@@ -285,8 +285,6 @@ function findFieldName(fieldId){
   console.log(fieldId);
   for(i = 0; i < fieldNames.length-1; i++){
     if(fieldId == fieldNames[i].FIELD_ID){
-      console.log("match");
-      console.log(fieldNames[i].FIELD_NAME);
       return fieldNames[i].FIELD_NAME;
     }
   }
