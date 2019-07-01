@@ -71,6 +71,8 @@ function translateToParishCode(countyCode){
   return (code+001)/2;
 }
 
+//=============================== Parish Info Bar ==========================================//
+
 var info = L.control();
 
 info.onAdd = function (map) {
@@ -126,7 +128,6 @@ info.addTo(map);
 
 //=============================== Well Mapping ==========================================//
 var wellMarkers = new L.MarkerClusterGroup();
-var wellCoordsCsv;
 
 var wellPoints = L.geoCsv (null, {
     firstLineTitles: true,
@@ -140,38 +141,39 @@ var popupOpts = {
 };
 
 function createWellPopup(feature, layer){
-  //TODO MAKE SURE THAT IT IS A PRODUCER OR INJECTOR
-  var popup = '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
-  var well = findWellInfo(feature.properties.well_serial_num);
+  var status = well.WELL_STATUS_CODE;
+  if(status == 9 || status == 10){
+    var popup = '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
+    var well = findWellInfo(feature.properties.well_serial_num);
 
-  if(well == null){
-    popup += 'Something went wrong';
+    if(well == null){
+      popup += 'Something went wrong';
+    }
+    else{
+      popup += '<tr><th> Well Serial Number </th><td>'+ feature.properties.well_serial_num +'</td></tr>';
+      popup += '<tr><th> Well Name </th><td>' + well.WELL_NAME + '</td></tr>';
+      popup += '<tr><th> Spud Date </th><td>' + well.SPUD_DATE + '</td></tr>';
+
+      if(status == 9){
+        popup += '<tr><th> Producer/Injector </th><td> Injector /td></tr>';
+      }
+      else if(status == 10){
+        popup += '<tr><th> Producer/Injector </th><td> Producer </td></tr>';
+      }
+
+      popup += '<tr><th> Status Date </th><td>'+ well.UPDATE_DATE + '</td></tr>';
+      popup += '<tr><th> Date Last Updated </th><td>'+ feature.properties.update_date +'</td></tr>';
+
+      popup += '<tr><th> Field Id </th><td>'+ well.FIELD_ID+'</td></tr>';
+      var fieldName = findFieldName(well.FIELD_ID);
+      if(fieldName != null){
+        popup += '<tr><th> Field Name </th><td>'+ fieldName +'</td></tr>';
+      }
+    }
+
+    popup += "</table></popup-content>";
+    layer.bindPopup(popup, popupOpts);
   }
-  else{
-    popup += '<tr><th> Well Serial Number </th><td>'+ feature.properties.well_serial_num +'</td></tr>';
-    popup += '<tr><th> Well Name </th><td>' + well.WELL_NAME + '</td></tr>';
-    popup += '<tr><th> Spud Date </th><td>' + well.SPUD_DATE + '</td></tr>';
-
-    var status = well.WELL_STATUS_CODE;
-    if(status == 9){
-      popup += '<tr><th> Producer/Injector </th><td> Injector /td></tr>';
-    }
-    else if(status == 10){
-      popup += '<tr><th> Producer/Injector </th><td> Producer </td></tr>';
-    }
-
-    popup += '<tr><th> Status Date </th><td>'+ well.UPDATE_DATE + '</td></tr>';
-    popup += '<tr><th> Date Last Updated </th><td>'+ feature.properties.update_date +'</td></tr>';
-
-    popup += '<tr><th> Field Id </th><td>'+ well.FIELD_ID+'</td></tr>';
-    var fieldName = findFieldName(well.FIELD_ID);
-    if(fieldName != null){
-      popup += '<tr><th> Field Name </th><td>'+ fieldName +'</td></tr>';
-    }
-  }
-
-  popup += "</table></popup-content>";
-  layer.bindPopup(popup, popupOpts);
 }
 
 var addCsvMarkers = function() {
@@ -202,10 +204,35 @@ if(typeof(String.prototype.strip) === "undefined") {
 
 map.addLayer(wellMarkers);
 
+// =========================================== Load Shapefile ========================================================//
+
+
+var shpfile = new L.Shapefile(fieldShapefileUrl, {
+	onEachFeature: function(feature, layer) {
+		if (feature.properties) {
+			layer.bindPopup(Object.keys(feature.properties).map(function(k) {
+				return k + ": " + feature.properties[k];
+			}).join("<br />"), {
+				maxHeight: 200
+			});
+		}
+		layer.on({
+			click: function(e){
+				console.log(e.target.feature.properties.Field_Name);
+			}
+		})
+	}
+});
+shpfile.addTo(map);
+shpfile.once("data:loaded", function() {
+	console.log("finished loaded shapefile");
+});
+
 // =========================================== Populate CSV Arrays ========================================================//
 var prodDetailsCsv;
 var prodCsv;
 var wellInfoCsv;
+var wellCoordsCsv;
 var fieldNamesCsv;
 
 function populateProd(){
