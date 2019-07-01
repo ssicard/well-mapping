@@ -237,8 +237,8 @@ function createFieldPopup(feature, layer){
     popup += '<tr><th> Field Name </th><td>'+ feature.properties.Field_Name +'</td></tr>';
     popup += '<tr><th> Field ID </th><td>'+ feature.properties.Field_ID +'</td></tr>';
     popup += '<tr><th> Field Type </th><td>'+ feature.properties.Field_Type +'</td></tr>';
-    // popup += '<tr><th> Number of Producers </th><td>' + totalNumOfProducersByField(fieldId) + '</td></tr>';
-    // popup += '<tr><th> Number of Injectors </th><td>' + totalNumOfInjectorsByField(fieldId) +'</td></tr>';
+    popup += '<tr><th> Number of Producers </th><td>' + totalNumOfProducersByField(fieldId) + '</td></tr>';
+    popup += '<tr><th> Number of Injectors </th><td>' + totalNumOfInjectorsByField(fieldId) +'</td></tr>';
     popup += "</table></popup-content>";
     layer.bindPopup(popup, popupOpts);
   }
@@ -256,11 +256,23 @@ shpfile.once("data:loaded", function() {
 // =========================================== Producer/Injector Helpers ========================================================//
 
 function totalNumOfProducersByField(fieldId){
-  console.log("TODO");
+  var prodInField = 0;
+  for(var well in wellInfo){
+      if(well.FIELD_ID == fieldId && well.WELL_STATUS_CODE == 10){
+        prodInField++;
+      }
+  }
+  return prodInField;
 }
 
 function totalNumOfInjectorsByField(fieldId){
-  console.log("TODO");
+  var injectInField = 0;
+  for(var well in wellInfo){
+      if(well.FIELD_ID == fieldId && well.WELL_STATUS_CODE == 9){
+        injectInField++;
+      }
+  }
+  return injectInField;
 }
 
 function totalNumOfProducersByParish(parishCode){
@@ -274,13 +286,13 @@ function totalNumOfProducersByParish(parishCode){
 }
 
 function totalNumOfInjectorsByParish(parishCode){
-  var prodInParish = 0;
+  var injectInParish = 0;
   for(var well in wellInfo){
       if(well.PARISH_CODE == parishCode && well.WELL_STATUS_CODE == 9){
-        prodInParish++;
+        injectInParish++;
       }
   }
-  return prodInParish;
+  return injectInParish;
 }
 
 // =========================================== Populate CSV Arrays ========================================================//
