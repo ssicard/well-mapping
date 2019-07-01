@@ -28,10 +28,10 @@ jQuery.getJSON(parishesUrl, function(data){
     }
   }
 
-  geojson = L.geoJson(data, geoJSONOptions).addTo(map);
+  parishes = L.geoJson(data, geoJSONOptions).addTo(map);
 
   try {
-      var bounds = geojson.getBounds();
+      var bounds = parishes.getBounds();
       if (bounds) {
           map.fitBounds(bounds);
       }
@@ -57,7 +57,7 @@ function highlightFeature(parishLayer) {
 }
 
 function resetHighlight() {
-  geojson.resetStyle(prevClickedParish);
+  parishes.resetStyle(prevClickedParish);
 }
 
 function zoomToFeature(e) {
@@ -78,11 +78,6 @@ function displayProdDataByParish(e) {
   else{  }
 }
 
-function translateToParishCode(countyCode){
-  code = parseInt(countyCode);
-  return (code+001)/2;
-}
-
 //=============================== Parish Info Bar ==========================================//
 
 var info = L.control();
@@ -101,20 +96,10 @@ info.update = function (props) {
     this._div.innerHTML += '<b> Parish: </b>' + props.NAME;
 
     if(details==null){
-      this._div.innerHTML += '</br> <b> Parish Code: </b>' + translateToParishCode(props.COUNTY);
+      this._div.innerHTML += '</br> No details for this parish.';
     }
     else{
-      var information = findParishProdInfo(details.OGP_SEQ_NUM);
-      if(information != null){
-        var propValue;
-        for(var propName in information){
-          console.log("prodInfo");
-          propValue = information[propName];
-          this._div.innerHTML += '</br> <b>' + propName + ':</b> ' + propValue;
-        }
-        this._div.innerHTML +='</br> <b> field: </b> ' + information.FIELD_ID;
-      }
-
+      //var information = findParishProdInfo(details.OGP_SEQ_NUM);
       this._div.innerHTML +=
          '</br> <b> Number of Producers:</b>' + totalNumOfProducersByParish(parishCode)
         +'</br> <b> Number of Injectors:</b>' + totalNumOfInjectorsByParish(parishCode)
@@ -122,7 +107,7 @@ info.update = function (props) {
       var fields = findAllFieldsInParish(parishCode);
       if(fields.length > 1){
         for(var field in fields){
-          this._div.innerHTML += field.FIELD_NAME + ", "
+          this._div.innerHTML += field.FIELD_NAME + "</br>"
         }
       }
       else {
@@ -141,6 +126,24 @@ info.update = function (props) {
 };
 
 info.addTo(map);
+
+
+// var legend = L.control({position: 'bottomright'});
+// legend.onAdd = function (map) {
+//   var div = L.DomUtil.create('div', 'info legend'),
+//     div.innerHTML += "<button type='button' id='parishLayer' class='btn'>Parish Layer</button>"
+//                   += "<button type='button' id='wellLayer' class='btn'>Wells</button>";
+//     return div;
+// }
+// legend.addTo(map);
+
+// $("#parishLayer").click(function() {
+//          map.addLayer(parishLayer);
+// });
+// $("#wellLayer").click(function() {
+//          map.addLayer(brCenters)
+//          map.removeLayer(noBrCenters)
+// });
 
 //=============================== Well Mapping ==========================================//
 var wellMarkers = new L.MarkerClusterGroup();
@@ -213,46 +216,53 @@ if(typeof(String.prototype.strip) === "undefined") {
 map.addLayer(wellMarkers);
 
 // =========================================== Load Shapefile ========================================================//
-let fieldStyle = function(feature) {
-  var fieldType = feature.properties.Field_Type;
-  if(fieldType == "Gas"){
-    color = gasFieldColor;
-  }
-  else if(fieldType == "Oil"){
-    color = oilFieldColor;
-  }
-  else{
-    color = "#FFF";
-  }
+// let fieldStyle = function(feature) {
+//   var fieldType = feature.properties.Field_Type;
+//   if(fieldType == "Gas"){
+//     color = gasFieldColor;
+//   }
+//   else if(fieldType == "Oil"){
+//     color = oilFieldColor;
+//   }
+//   else{
+//     color = "#FFF";
+//   }
+//
+//   return {
+//     fillColor: color,
+//     color: color
+//   }
+// }
+//
+// function createFieldPopup(feature, layer){
+//   if (feature.properties) {
+//     var popup = '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
+//     popup += '<tr><th> Field Name </th><td>'+ feature.properties.Field_Name +'</td></tr>';
+//     popup += '<tr><th> Field ID </th><td>'+ feature.properties.Field_ID +'</td></tr>';
+//     popup += '<tr><th> Field Type </th><td>'+ feature.properties.Field_Type +'</td></tr>';
+//     popup += '<tr><th> Number of Producers </th><td> ' + totalNumOfProducersByField(fieldId) + '</td></tr>';
+//     popup += '<tr><th> Number of Injectors </th><td> ' + totalNumOfInjectorsByField(fieldId) +'</td></tr>';
+//     popup += "</table></popup-content>";
+//     layer.bindPopup(popup, popupOpts);
+//   }
+// }
+//
+// var fields = new L.Shapefile(fieldShapefileUrl, {
+//   style: fieldStyle,
+// 	onEachFeature: createFieldPopup
+// });
+//
+// fields.addTo(map);
+// fields.once("data:loaded", function() {
+// 	console.log("finished loaded shapefile");
+// });
 
-  return {
-    fillColor: color,
-    color: color
-  }
+// =========================================== Helpers ========================================================//
+
+function translateToParishCode(countyCode){
+  code = parseInt(countyCode);
+  return (code+001)/2;
 }
-
-function createFieldPopup(feature, layer){
-  if (feature.properties) {
-    var popup = '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
-    popup += '<tr><th> Field Name </th><td>'+ feature.properties.Field_Name +'</td></tr>';
-    popup += '<tr><th> Field ID </th><td>'+ feature.properties.Field_ID +'</td></tr>';
-    popup += '<tr><th> Field Type </th><td>'+ feature.properties.Field_Type +'</td></tr>';
-    popup += '<tr><th> Number of Producers </th><td>' + totalNumOfProducersByField(fieldId) + '</td></tr>';
-    popup += '<tr><th> Number of Injectors </th><td>' + totalNumOfInjectorsByField(fieldId) +'</td></tr>';
-    popup += "</table></popup-content>";
-    layer.bindPopup(popup, popupOpts);
-  }
-}
-
-var shpfile = new L.Shapefile(fieldShapefileUrl, {
-  style: fieldStyle,
-	onEachFeature: createFieldPopup
-});
-
-shpfile.addTo(map);
-shpfile.once("data:loaded", function() {
-	console.log("finished loaded shapefile");
-});
 // =========================================== Producer/Injector Helpers ========================================================//
 
 function totalNumOfProducersByField(fieldId){
@@ -408,6 +418,19 @@ function findAllFieldsInParish(parishCode){
 
 //=============================================== File Loading =============================================================//
 $(document).init( function() {
+  $.ajax ({
+      type:'GET',
+      dataType:'text',
+      url: fieldNamesUrl,
+      contentType: "text/csv; charset=utf-8",
+      error: function() {
+          alert('Error loading' + fieldNamesUrl);
+      },
+      success: function(csv) {
+          fieldNamesCsv = csv;
+          populateFieldNames();
+      }
+  });
     $.ajax ({
         type:'GET',
         dataType:'text',
@@ -424,19 +447,7 @@ $(document).init( function() {
 });
 
 $(document).ready( function() {
-    $.ajax ({
-        type:'GET',
-        dataType:'text',
-        url: fieldNamesUrl,
-        contentType: "text/csv; charset=utf-8",
-        error: function() {
-            alert('Error loading' + fieldNamesUrl);
-        },
-        success: function(csv) {
-            fieldNamesCsv = csv;
-            populateFieldNames();
-        }
-    });
+
     $.ajax ({
         type:'GET',
         dataType:'text',
