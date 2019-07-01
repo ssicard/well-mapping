@@ -14,4 +14,5 @@ var wellCoordsUrl = 'data/f_well_surface_coords.csv';
 var prodUrl = 'data/oil-gas-production.csv';
 var prodDetailsUrl = 'data/f_oil_gas_production_details.csv';
 var fieldNamesUrl = 'data/f_fields.csv'
+var fieldParishUrl = 'data/f_field_parishes.csv'
 var fieldShapefileUrl = 'data/gas_and_oil_fields.zip'
