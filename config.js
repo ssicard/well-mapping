@@ -17,4 +17,3 @@ var fieldNamesUrl = 'data/f_fields.csv';
 var fieldParishUrl = 'data/f_field_parishes.csv';
 var fieldShapefileUrl = 'data/gas_and_oil_fields.zip';
 var fieldJsonUrl = 'data/Louisiana_gas_and_oil_fields_1977_2014.json';
-var REFRESH_DATE = '20-JUNE-2019'

@@ -10,6 +10,7 @@ var map = new L.Map('map', {center: center, zoom: 2, maxZoom: maxZoom, layers: [
 
 //=============================== Parish Boundaries ==========================================//
 var prevClickedParish;
+var parishJson;
 
 //json adapted from http://eric.clst.org/tech/usgeojson/
 jQuery.getJSON(parishesUrl, function(data){
@@ -134,6 +135,40 @@ info.update = function (props) {
 
 info.addTo(map);
 
+//=============================== Toggle Layers ==========================================//
+
+function toggleParish(){
+  var checkbox = document.getElementById("parishToggle");
+  console.log(checkbox);
+  console.log(parishJson);
+  if(checkbox.checked == true){
+    map.addLayer(parishJson);
+  }
+  else {
+    map.removeLayer(parishJson);
+  }
+}
+
+function toggleWell(){
+  var checkbox = document.getElementById("wellToggle");
+  if(checkbox.checked == true){
+    map.addLayer(wellPoints);
+  }
+  else {
+    map.removeLayer(wellPoints);
+  }
+}
+
+function toggleField(){
+  var checkbox = document.getElementById("fieldToggle");
+  if(checkbox.checked == true){
+    map.addLayer(fieldJson);
+  }
+  else {
+    map.removeLayer(fieldJson);
+  }
+}
+
 //=============================== Well Mapping ==========================================//
 var wellMarkers = new L.MarkerClusterGroup();
 
@@ -203,6 +238,7 @@ if(typeof(String.prototype.strip) === "undefined") {
 map.addLayer(wellMarkers);
 
 // =========================================== Load Shapefile ========================================================//
+var fieldJson;
 let fieldStyle = function(feature) {
   var fieldType = feature.properties.Field_Type;
   if(fieldType == "Gas"){
