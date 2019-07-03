@@ -1,6 +1,17 @@
 // SETTING GLOBAL VARS //
 var oilFieldColor = "#f54242";
 var gasFieldColor = "#10a14c";
+var parishColor = "#15560d";
+var lsuPurple = "#461D7C";
+var lsuGold = "#FDD023";
+var prodDetailsCsv;
+var prodCsv;
+var wellInfoCsv;
+var wellCoordsCsv;
+var fieldNamesCsv;
+var fieldParishCsv;
+var prevClickedParish;
+var parishJson;
 
 
 var basemap = new L.TileLayer(baseUrl, {maxZoom: 20, attribution: baseAttribution, subdomains: subdomains, opacity: opacity});
@@ -86,67 +97,32 @@ function translateToParishCode(countyCode){
 
 //=============================== Parish Info Bar ==========================================//
 
+
 var info = L.control();
 
 info.onAdd = function (map) {
   this._div = L.DomUtil.create('div', 'info');
-  this.update();
+  this._div.innerHTML = '<h4> Selection Menu </h4>';
+  this._div.innerHTML +=
+    '<input type="checkbox" id="parishToggle" onclick="toggleParish()" checked>Parishes </br>'
+  + '<input type="checkbox" id="wellToggle" onclick="toggleWell()" checked>Wells </br>'
+  + '<input type="checkbox" id="fieldToggle" onclick="toggleField()" checked>Fields </br>'
+  + '</br></br><p id="sidenote"> Please select item on the map for more information </p>'
   return this._div;
 }
-
-info.update = function (props) {
-  this._div.innerHTML = '<h4> Parish Production Information </h4>';
-  if(props){
-    var parishCode = translateToParishCode(props.COUNTY)
-    var details = findParishProdDetails(parishCode);
-    this._div.innerHTML += '<b> Parish: </b>' + props.NAME;
-
-    if(details==null){
-      this._div.innerHTML += '</br>No information on this parish.';
-    }
-    else{
-      // var information = findParishProdInfo(details.OGP_SEQ_NUM);
-      this._div.innerHTML +=
-         '</br> <b> Number of Producers:</b>' + totalNumOfProducersByParish(parishCode)
-        +'</br> <b> Number of Injectors:</b>' + totalNumOfInjectorsByParish(parishCode)
-        +'</br> <b> Production in Parish:</b>' + totalProductionByParish(parishCode)
-        +'</br> <b> Fields in Parish: </b>';
-      var fields = findAllFieldsInParish(parishCode);
-      if(fields.length > 1){
-        for(var field in fields){
-          this._div.innerHTML += field.FIELD_NAME + ", "
-        }
-      }
-      else {
-        this._div.innerHTML += "</br>There are no fields in this parish.";
-      }
-
-      this._div.innerHTML +=
-          '</br> <b> Date Created:</b>' + details.CREATE_DATE
-          + '</br><b>Last Refresh Date </b>'+ REFRESH_DATE;
-
-    }
-  }
-  else{
-    this._div.innerHTML += 'Click for parish production information.'
-  }
-
-};
 
 info.addTo(map);
 
 //=============================== Toggle Layers ==========================================//
-
 function toggleParish(){
   var checkbox = document.getElementById("parishToggle");
-  console.log(checkbox);
-  console.log(parishJson);
   if(checkbox.checked == true){
     map.addLayer(parishJson);
   }
   else {
     map.removeLayer(parishJson);
   }
+  orderLayers();
 }
 
 function toggleWell(){
@@ -157,6 +133,7 @@ function toggleWell(){
   else {
     map.removeLayer(wellPoints);
   }
+  orderLayers();
 }
 
 function toggleField(){
@@ -167,6 +144,115 @@ function toggleField(){
   else {
     map.removeLayer(fieldJson);
   }
+  orderLayers();
+}
+
+function orderLayers(){
+  parishJson.bringToBack();
+  wellPoints.bringToFront();
+  fieldJson.bringToFront();
+}
+
+//=============================== Parish Layer ==========================================//
+
+//json adapted from http://eric.clst.org/tech/usgeojson/
+jQuery.getJSON(parishesUrl, function(data){
+  let parishStyle = function (feature) {
+    return {
+      fillColor: parishColor,
+      color: parishColor
+    }
+  }
+
+  parishJson = L.geoJson(data, {
+    onEachFeature: onEachFeature,
+    style: parishStyle,
+    filter: function(feature, parishLayer) {
+      return feature.properties.STATE == 22;
+    }
+  }).addTo(map);
+
+  try {
+      var bounds = parishJson.getBounds();
+      if (bounds) {
+          map.fitBounds(bounds);
+      }
+  } catch(err) {
+      // pass
+  }
+});
+
+function onEachFeature(feature, parishLayer) {
+    parishLayer.on({
+        click: displayProdDataByParish
+    });
+}
+
+function highlightFeature(parishLayer) {
+  parishLayer.setStyle({
+    weight: 5,
+    dashArray: '',
+    fillOpacity: 0.7
+  });
+
+  prevClickedParish = parishLayer;
+}
+
+function resetHighlight() {
+  parishJson.resetStyle(prevClickedParish);
+}
+
+function displayProdDataByParish(e) {
+  var parishLayer = e.target;
+  if(prevClickedParish!=null){
+    resetHighlight();
+  }
+  var parishCode = translateToParishCode(parishLayer.feature.properties.COUNTY);
+  if(parishCode > 0 && parishCode < 69){
+    highlightFeature(parishLayer);
+    createParishPopup(parishLayer, parishLayer.feature);
+  }
+}
+
+function createParishPopup(parishLayer, feature){
+  var popup = '<div class="popup-content">';
+  popup += '<h6>Parish Production Information</h6>';
+
+  if (feature.properties) {
+    var parishCode = translateToParishCode(feature.properties.COUNTY);
+    var details = findParishProdDetails(parishCode);
+    popup += '<table class="table table-striped table-bordered table-condensed"><tr><th> Parish Name </th><td>'+ feature.properties.NAME +'</td></tr>';
+
+    if(details==null){
+      popup += '</table>There is no information for this parish';
+    }
+    else{
+      // var information = findParishProdInfo(details.OGP_SEQ_NUM);
+      popup += '<tr><th> Number of Producers: </th><td>' + totalNumOfProducersByParish(parishCode) + '</td></tr>';
+      popup += '<tr><th> Number of Injectors: </th><td>' + totalNumOfInjectorsByParish(parishCode) + '</td></tr>';
+      popup += '<tr><th> Production in Parish: </th><td>' + totalProductionByParish(parishCode) + '</td></tr>';
+      popup += '<tr><th> Fields in Parish: </th><td>';
+        var fields = findAllFieldsInParish(parishCode);
+        console.log(fields.length);
+        if(fields.length > 1){
+          for(var field in fields){
+            popup += field.FIELD_NAME + '</br>';
+          }
+        }
+        else{
+          popup += "There are no fields in this parish."
+        }
+      popup += '</td></tr>';
+      popup += '<tr><th> Date Created: </th><td>' + details.CREATE_DATE + '</td></tr>';
+      popup += '<tr><th> Last Refresh Date: </th><td>' + REFRESH_DATE + '</td></tr>';
+      popup += "</table>";
+    }
+  }
+  else{
+    popup += 'There is no information for this parish.';
+  }
+  popup += "</popup-content>";
+  parishLayer.bindPopup(popup, popupOpts);
 }
 
 //=============================== Well Mapping ==========================================//
@@ -253,12 +339,12 @@ let fieldStyle = function(feature) {
 
   return {
     fillColor: color,
-    color: color
+    color: color,
+    weight: 1
   }
 }
 
 function createFieldPopup(feature, layer){
-  console.log('greate');
   if (feature.properties) {
     var fieldId = feature.properties.Field_Id;
     var popup = '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
@@ -281,6 +367,26 @@ function createFieldPopup(feature, layer){
 //
 //   fieldJson = L.geoJson(data, geoJSONOptions).addTo(map);
 // });
+
+
+// =========================================== Helpers ========================================================//
+
+function translateToParishCode(countyCode){
+  code = parseInt(countyCode);
+  return (code+001)/2;
+}
+
+if(typeof(String.prototype.strip) === "undefined") {
+    String.prototype.strip = function() {
+        return String(this).replace(/^\s+|\s+$/g, '');
+    };
+}
+
+var popupOpts = {
+    autoPanPadding: new L.Point(5, 50),
+    autoPan: true
+};
+
 // =========================================== Producer/Injector Helpers ========================================================//
 
 function totalProductionByField(fieldId){
@@ -350,13 +456,6 @@ function totalNumOfInjectorsByParish(parishCode){
 }
 
 // =========================================== Populate CSV Arrays ========================================================//
-var prodDetailsCsv;
-var prodCsv;
-var wellInfoCsv;
-var wellCoordsCsv;
-var fieldNamesCsv;
-var fieldParishCsv;
-
 function populateProd(){
   Papa.parse(prodCsv, {
     header: true,
@@ -555,10 +654,5 @@ $(document).ready( function() {
             prodCsv = csv;
             populateProd();
         }
-    });
-
-    $("#clear").click(function(evt){
-        evt.preventDefault();
-        addCsvMarkers();
     });
 });
