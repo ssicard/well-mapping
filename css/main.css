@@ -48,7 +48,7 @@ img {
 }
 
 
-.info {
+.selectionMenu {
     padding: 6px 8px;
     background: var(--lsu-purple);
     box-shadow: 0 0 15px rgba(0,0,0,0.2);
@@ -56,7 +56,7 @@ img {
     overflow-y: scroll;
     text: var(--lsu-gold);
 }
-.info h4 {
+.selectionMenu h4 {
     margin: 0 0 5px;
     color: var(--lsu-gold);
 }
@@ -102,7 +102,7 @@ label.css-label {
   color: var(--lsu-gold);
 }
 
-.dataBox {
+.prodChartBox {
   padding: .5em 1em;
   /* font: 14px/16px Arial, Helvetica, sans-serif; */
   background: var(--lsu-purple);
@@ -110,6 +110,18 @@ label.css-label {
   border-radius: 5px;
   float: left;
   color: var(--lsu-gold);
+}
+
+.fieldListBox {
+  padding: .5em 1em;
+  /* font: 14px/16px Arial, Helvetica, sans-serif; */
+  background: var(--lsu-purple);
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+  border-radius: 5px;
+  float: left;
+  color: var(--lsu-gold);
+  max-height: 300px;
+  overflow-y: scroll;
 }
 
 .credits {
@@ -127,3 +139,19 @@ label.css-label {
   font-size: 8pt;
   color: var(--lsu-gold);
 }
+
+.leaflet-top.leaflet-left {
+  display: inline-block;
+  float: none;
+}
+
+.parish-name{
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  font-weight: bold;
+}
+/*
+.leaflet-control-zoom.leaflet-bar.leaflet-control  {
+  transform: translate(1000%, 0%);
+} */

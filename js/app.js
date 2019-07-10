@@ -23,11 +23,7 @@ var map = new L.Map('map', {
   layers: [basemap]
 });
 
-//=============================== Parish Info Bar ==========================================//
-// L.control.zoom({
-//   position:'bottomleft'
-// }).addTo(map);
-
+//=============================== Map Controls ==========================================//
 var title = L.control();
 title.onAdd = function(map){
   this._div = L.DomUtil.create('div', 'title');
@@ -39,18 +35,22 @@ title.onAdd = function(map){
 title.setPosition('topleft');
 title.addTo(map);
 
-var dataBox = L.control();
-dataBox.onAdd = function(map) {
-  this._div = L.DomUtil.create('div', 'dataBox');
+L.control.zoom({
+  position:'topleft'
+}).addTo(map);
+
+var prodChartBox = L.control();
+prodChartBox.onAdd = function(map) {
+  this._div = L.DomUtil.create('div', 'prodChartBox');
   this._div.innerHTML = '<canvas id="stateChart"></canvas>';
   return this._div;
 }
-dataBox.setPosition('bottomright');
-dataBox.addTo(map);
+prodChartBox.setPosition('bottomright');
+prodChartBox.addTo(map);
 
-var info = L.control();
-info.onAdd = function (map) {
-  this._div = L.DomUtil.create('div', 'info');
+var selectionMenu = L.control();
+selectionMenu.onAdd = function (map) {
+  this._div = L.DomUtil.create('div', 'selectionMenu');
   this._div.innerHTML = '<h4> Selection Menu </h4>';
   this._div.innerHTML +=
  '<table><tr><td><input type="checkbox" name="parishToggle" id="parishToggle" class="css-checkbox" onclick="toggleParish()" checked/><label for="parishToggle" class="css-label">Display Parish</label></td></tr>'
@@ -59,7 +59,24 @@ info.onAdd = function (map) {
   + '</br></br><p id="sidenote"> Please click on item in the map for more information </p>'
   return this._div;
 }
-info.addTo(map);
+selectionMenu.addTo(map);
+
+var fieldList = L.control();
+fieldList.onAdd = function(map){
+  this._div = L.DomUtil.create('div', 'fieldListBox');
+
+  this._div.innerHTML += '<h4> Oil and Gas Fields </h4>';
+  var allFields = findAllFields();
+  this._div.innerHTML += '<table>';
+  for(i=0; i < allFields.length; i++){
+    this._div.innerHTML += '<tr onclick="doSomething()"><td><p>' + allFields[i] + '</p></td></tr>'
+  }
+  this._div.innerHTML += '</table>';
+
+  return this._div;
+}
+fieldList.setPosition('topright');
+// fieldList.addTo(map); //DELETE
 
 var credits = L.control();
 credits.onAdd = function(map){
@@ -73,6 +90,10 @@ credits.onAdd = function(map){
 credits.setPosition('bottomleft');
 credits.addTo(map);
 
+
+function doSomething(){
+  console.log("done");
+}
 //=============================== Toggle Layers ==========================================//
 
 function toggleParish(){
@@ -100,9 +121,11 @@ function toggleWell(){
 function toggleField(){
   var checkbox = document.getElementById("fieldToggle");
   if(checkbox.checked == true){
+    fieldList.addTo(map);
     map.addLayer(fieldJson);
   }
   else {
+    fieldList.removeFrom(map);
     map.removeLayer(fieldJson);
   }
   orderLayers();
@@ -127,6 +150,12 @@ jQuery.getJSON(parishesUrl, function(data){
 
   parishJson = L.geoJson(data, {
     onEachFeature: onEachFeature,
+    // pointToLayer: function(feature, latlng){
+    //   label = String(feature.properties.COUNTY);
+    //   return new L.CircleMarker(latlng, {
+    //     radius: 1
+    //   }).bindTooltip(label, {permanent: true, opacity: .7}).openTooltip();
+    // },
     style: parishStyle,
     filter: function(feature, parishLayer) {
       return feature.properties.STATE == 22;
@@ -144,8 +173,21 @@ jQuery.getJSON(parishesUrl, function(data){
 });
 
 function onEachFeature(feature, parishLayer) {
+  var center = parishLayer.getBounds().getCenter();
+  var marker = L.marker(center, {
+      icon: L.divIcon({
+        iconAnchor: [20, 20],
+        iconSize: [40, 40]
+      }),
+      opacity: 0
+  }).bindTooltip(parishLayer.feature.properties.NAME, {
+    permanent:true,
+    direction: 'center',
+    className: 'parish-name'
+    // opacity: .5
+  }).addTo(map);
     parishLayer.on({
-        click: displayProdDataByParish
+        click: displayProdDataByParish,
     });
 }
 
@@ -172,7 +214,7 @@ function displayProdDataByParish(e) {
   if(parishCode > 0 && parishCode < 69){
     highlightFeature(parishLayer);
     createParishPopup(parishLayer, parishLayer.feature);
-    createProdChartForParish();
+    createProdChartForParish(translateToParishCode(parishLayer.feature.properties.COUNTY));
   }
 }
 
@@ -183,7 +225,7 @@ function createParishPopup(parishLayer, feature){
   if (feature.properties) {
     var parishCode = translateToParishCode(feature.properties.COUNTY);
     var details = findParishProdDetails(parishCode);
-    popup += '<canvas id="myChart"></canvas>';
+    popup += '<canvas id="parishChart"></canvas>';
 
     popup += '<table class="table table-striped table-bordered table-condensed"><tr><th> Parish Name </th><td>'+ feature.properties.NAME +'</td></tr>';
 
@@ -197,7 +239,6 @@ function createParishPopup(parishLayer, feature){
       popup += '<tr><th> Production in Parish: </th><td>' + totalProductionByParish(parishCode) + '</td></tr>';
       popup += '<tr><th> Fields in Parish: </th><td>';
         var fields = findAllFieldsInParish(parishCode);
-        console.log(fields.length);
         if(fields.length > 1){
           for(var field in fields){
             popup += field.FIELD_NAME + '</br>';
@@ -216,8 +257,11 @@ function createParishPopup(parishLayer, feature){
     popup += 'There is no information for this parish.';
   }
   popup += "</popup-content>";
-  parishLayer.bindPopup(popup, popupOpts);
-  createProdChartForParish(parishCode);
+
+
+  parishLayer.bindPopup(popup, popupOpts).on('popupopen', function (popup) {
+    renderChartForParish(labelsParish, oilDataParish, gasDataParish);
+  });
 }
 
 //=============================== Well Mapping ==========================================//
@@ -231,7 +275,8 @@ var wellPoints = L.geoCsv (null, {
 
 var popupOpts = {
     autoPanPadding: new L.Point(5, 50),
-    autoPan: true
+    autoPan: true,
+    closeOnEscapeKey: true,
 };
 
 function createWellPopup(feature, layer){
@@ -367,59 +412,71 @@ function createProdChartForState() {
   renderChartForState(oilData, gasData, labels);
 }
 
-function renderChartForState(oilData, gasData, labels) {
-      var ctx = document.getElementById("stateChart").getContext('2d');
-      var myChart = new Chart(ctx, {
-          type: 'line',
-          data: {
-              labels: labels,
-              datasets: [{
-                  label: 'Oil Production',
-                  data: oilData,
-                  borderColor: oilFieldColor,
-                  backgroundColor: oilFieldColorOpaque,
-              },
-              {
-                  label: 'Gas Production',
-                  data: gasData,
-                  borderColor: gasFieldColor,
-                  backgroundColor: gasFieldColorOpaque,
-              }]
-          },
-          options: {
-            title: {
-              display: true,
-              text: 'Louisiana Oil/Gas Production By Year'
-            },
-            scales: {
-                yAxes: [{
-                  scaleLabel:{
-                    display: true,
-                    labelString: 'PRODUCTION'
-                  },
-                  ticks: {
-                      beginAtZero: true
-                  }
-                }],
-                xAxes: [{
-                  scaleLabel: {
-                    display: true,
-                    labelString: 'YEAR'
-                  }
-                }]
-              }
-          },
-      });
-  }
+// =========================================== RENDER CHART HELPERS ========================================================//
 
-// =========================================== CHART HELPERS ========================================================//
-function createChartDataJson(parishCode){
-  var dict = totalProductioninYearByParish(parishCode);
+function renderChartForState(oilData, gasData, labels) {
+    var ctx = document.getElementById("stateChart").getContext('2d');
+    renderChart(ctx, oilData, gasData, labels);
+}
+
+function renderChartForParish(oilData, gasData, labels){
+  var ctx = document.getElementById("parishChart").getContext('2d');
+  renderChart(ctx, oilData, gasData, labels);
+}
+
+function renderChart(ctx, oilData, gasData, labels){
+  var myChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+          labels: labels,
+          datasets: [{
+              label: 'Oil Production',
+              data: oilData,
+              borderColor: oilFieldColor,
+              backgroundColor: oilFieldColorOpaque,
+          },
+          {
+              label: 'Gas Production',
+              data: gasData,
+              borderColor: gasFieldColor,
+              backgroundColor: gasFieldColorOpaque,
+          }]
+      },
+      options: {
+        title: {
+          display: true,
+          text: 'Louisiana Oil/Gas Production By Year'
+        },
+        scales: {
+            yAxes: [{
+              scaleLabel:{
+                display: true,
+                labelString: 'PRODUCTION'
+              },
+              ticks: {
+                  beginAtZero: true
+              }
+            }],
+            xAxes: [{
+              scaleLabel: {
+                display: true,
+                labelString: 'YEAR'
+              }
+            }]
+          }
+      },
+  });
+}
+
+// =========================================== PARISH CHART HELPERS ========================================================//
+function createChartDataJsonForParish(parishCode){
+  var summaries = totalProductionByState();
 
   var json = '{"ParishProduction": [';
-  for(var key in dict){
-    json += '{ "year": "' + key + '",';
-    json += '"prodSum":' + dict[key] + ' },';
+  for(i=0; i < summaries.length; i++){
+    json += '{ "year": "' + summaries[i].year + '",';
+    json += '"oilSum":' + summaries[i].oilProd + ',';
+    json += '"gasSum": ' + summaries[i].gasProd + ' },';
   }
 
   json = json.substring(0, json.length - 1); //remove trailing comma
@@ -430,59 +487,19 @@ function createChartDataJson(parishCode){
 }
 
 function createProdChartForParish() {
-  console.log("in");
-  data = [];
-  labels =  [];
+  oilDataParish = [];
+  gasDataParish = [];
+  labelsParish =  [];
 
-  chartData = createChartDataJson(9);
+  chartData = createChartDataJsonForParish();
   var dataArr = chartData.ParishProduction;
 
   for(i=0; i < dataArr.length; i++){
-   labels.push(dataArr[i].year);
-   data.push(dataArr[i].prodSum);
+   labelsParish.push(dataArr[i].year);
+   oilDataParish.push(dataArr[i].oilSum);
+   gasDataParish.push(dataArr[i].gasSum)
   }
-  renderChart(data, labels);
 }
-
-function renderChart(data, labels) {
-  var ctx = document.getElementById("stateChart").getContext('2d');
-
-      var myChart = new Chart(ctx, {
-          type: 'line',
-          data: {
-              labels: labels,
-              datasets: [{
-                  label: 'Oil/Gas Production By Year',
-                  data: data,
-                  borderColor: 'rgba(253,208,35, 1)',
-                  backgroundColor: 'rgba(253,208,35, 0.4)',
-              }]
-          },
-          options: {
-            title: {
-              display: true,
-              text: 'Oil/Gas Production of Parish By Year'
-            },
-            scales: {
-                yAxes: [{
-                  scaleLabel:{
-                    display: true,
-                    labelString: 'production'
-                  },
-                  ticks: {
-                      beginAtZero: true
-                  }
-                }],
-                xAxes: [{
-                  scaleLabel: {
-                    display: true,
-                    labelString: 'year'
-                  }
-                }]
-              }
-          },
-      });
-  }
 
 // =========================================== Helpers ========================================================//
 
@@ -491,11 +508,9 @@ function translateToParishCode(countyCode){
   return (code+001)/2;
 }
 
-function findCorrectYear(year){
-  console.log(year);
-  for(var entry in jsonObj){
-    console.log(entry);
-    if(jsonObj[entry].year == year){
+function findCorrectYear(year, prodJson){
+  for(var entry in prodJson){
+    if(prodJson[entry].year == year){
       return entry;
     }
   }
@@ -591,33 +606,41 @@ function totalNumOfInjectorsByParish(parishCode){
 
 function totalProductioninYearByParish(parishCode){
   var years = new Set();
-  var dict = new Object();
+  var prodJson = [];
+
   for(i=0; i < prodDetails.length; i++){
     if(prodDetails[i].PARISH_CODE == parishCode){
       var year = transformDate(prodDetails[i].CREATE_DATE);
       if(years.has(year)){ //If year is already in set, total with prev value
-        dict[year] += sumProduction(prodDetails[i]);
+        var index = findCorrectYear(year, prodJson);
+        prodJson[index]['oilProd'] = prodJson[index]['oilProd'] + prodDetails[i].OIL_PRODUCTION;
+        prodJson[index]['gasProd'] = prodJson[index]['gasProd'] + prodDetails[i].GAS_PRODUCTION;
       }
       else{ //else add to set
         years.add(year);
-        dict[year] = sumProduction(prodDetails[i]);
+        item = {};
+        item["year"] = year;
+        item["gasProd"] = prodDetails[i].GAS_PRODUCTION;
+        item["oilProd"] = prodDetails[i].OIL_PRODUCTION;
+
+        prodJson.push(item);
       }
     }
   }
 
-  return dict;
+  return prodJson;
 }
 
 function totalProductionByState(){
   var years = new Set();
-  jsonObj = [];
+  var prodJson = [];
 
   for(i=0; i < prodDetails.length; i++){
     var year = transformDate(prodDetails[i].CREATE_DATE);
     if(years.has(year)){ //If year is already in set, total with prev value
-      var index = findCorrectYear(year);
-      jsonObj[index]['oilProd'] = jsonObj[index]['oilProd'] + prodDetails[i].OIL_PRODUCTION;
-      jsonObj[index]['gasProd'] = jsonObj[index]['gasProd'] + prodDetails[i].GAS_PRODUCTION;
+      var index = findCorrectYear(year, prodJson);
+      prodJson[index]['oilProd'] = prodJson[index]['oilProd'] + prodDetails[i].OIL_PRODUCTION;
+      prodJson[index]['gasProd'] = prodJson[index]['gasProd'] + prodDetails[i].GAS_PRODUCTION;
     }
     else{ //else add to set
       years.add(year);
@@ -626,13 +649,11 @@ function totalProductionByState(){
       item["gasProd"] = prodDetails[i].GAS_PRODUCTION;
       item["oilProd"] = prodDetails[i].OIL_PRODUCTION;
 
-      jsonObj.push(item);
+      prodJson.push(item);
     }
   }
 
-  console.log(jsonObj);
-
-  return jsonObj;
+  return prodJson;
 }
 
 // =========================================== Populate CSV Arrays ========================================================//
@@ -736,6 +757,14 @@ function findAllFieldsInParish(parishCode){
     if(parishCode == fieldParishes[i].PARISH_CODE){
       allFields.push(fieldParishes[i].FIELD_ID);
     }
+  }
+  return allFields;
+}
+
+function findAllFields(){
+  var allFields = [];
+  for(i = 0; i < fieldNames.length-1; i++){
+    allFields.push(fieldNames[i].FIELD_NAME);
   }
   return allFields;
 }
