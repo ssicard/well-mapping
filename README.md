@@ -13,6 +13,7 @@ for Louisiana State University Petroleum Engineering Department
 
 ### Data Sources
 * [Louisiana Gas and Oil Fields with Cumulative Production from 1977](https://data.doi.gov/dataset/louisiana-gas-and-oil-fields-with-cumulative-production-from-1977-20143f413)
+* [Department of Natural Resources Data Subscription](https://adfprodadm.dnr.state.la.us/DataSubscription/faces/login.jsf)
 
 
 ### Thanks to...
