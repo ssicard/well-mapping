@@ -140,8 +140,10 @@ function toggleField(){
     }
   }
   else {
-    // fieldList.removeFrom(map); TODO
-    map.removeLayer(fieldJson);
+    if(fieldJson != undefined){
+      map.removeLayer(fieldJson);
+      // fieldList.removeFrom(map); TODO
+    }
   }
   orderLayers();
 }
@@ -157,7 +159,6 @@ function orderLayers(){
 
 //=============================== Parish Layer ==========================================//
 
-//json adapted from http://eric.clst.org/tech/usgeojson/
 jQuery.getJSON(parishesUrl, function(data){
   let parishStyle = function (feature) {
     return {
@@ -349,6 +350,7 @@ if(typeof(String.prototype.strip) === "undefined") {
 map.addLayer(wellMarkers);
 
 // =========================================== Load Shapefile ========================================================//
+var fieldJson;
 let fieldStyle = function(feature) {
   var fieldType = feature.properties.Field_Type;
   if(fieldType == "Gas"){
@@ -369,7 +371,6 @@ let fieldStyle = function(feature) {
 }
 
 function createFieldPopup(feature, layer){
-  console.log("createPopup");
   if (feature.properties) {
     var fieldId = feature.properties.Field_Id;
     var popup = '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
@@ -384,15 +385,15 @@ function createFieldPopup(feature, layer){
   }
 }
 
-jQuery.getJSON(fieldJsonUrl, addFields);
-
-var addFields = function(data) {
-  console.log("addFields");
-  fieldJson = L.geoJson(data, {
+jQuery.getJSON(fieldJsonUrl, function(data){
+  let geoJSONOptions = {
     onEachFeature: createFieldPopup,
     style: fieldStyle
-  });
-}
+  }
+
+  fieldJson = L.geoJson(data, geoJSONOptions).addTo(map);
+});
+
 
 // =========================================== ALL LOUISIANA CHART HELPERS ========================================================//
 function createChartDataJsonForState(){
