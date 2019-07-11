@@ -6,7 +6,6 @@ for Louisiana State University Petroleum Engineering Department
 * clicking a point cluster will zoom into the extent of underlying Features
 * hovering on point will display Name
 * clicking will display a popupOpts
-* text filtering?
 
 ### Things to Note
 * the parish boundary is defined by counties.json. If the boundaries change, this will need to be updated.
@@ -21,5 +20,5 @@ for Louisiana State University Petroleum Engineering Department
 * [Leaflet](https://github.com/Leaflet/Leaflet)
 * [Leaflet.geoCSV](https://github.com/joker-x/Leaflet.geoCSV)
 * [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster)
-* [Twitter Boostrap](http://twitter.github.io/bootstrap/)
+* [Twitter Bootstrap](http://twitter.github.io/bootstrap/)
 * [jQuery](http://jquery.com/)

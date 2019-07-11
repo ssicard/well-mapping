@@ -151,7 +151,13 @@ label.css-label {
   box-shadow: none;
   font-weight: bold;
 }
-/*
-.leaflet-control-zoom.leaflet-bar.leaflet-control  {
-  transform: translate(1000%, 0%);
-} */
+
+
+li {
+  list-style-type: none;
+}
+
+li:hover {
+  background-color: var(--lsu-gold);
+  color: var(--lsu-purple);
+}

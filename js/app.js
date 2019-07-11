@@ -12,6 +12,7 @@ var fieldNamesCsv;
 var fieldParishCsv;
 var prevClickedParish;
 var parishJson;
+var fieldJson;
 var chartData
 
 // SETTING MAP VARS //
@@ -56,27 +57,26 @@ selectionMenu.onAdd = function (map) {
  '<table><tr><td><input type="checkbox" name="parishToggle" id="parishToggle" class="css-checkbox" onclick="toggleParish()" checked/><label for="parishToggle" class="css-label">Display Parish</label></td></tr>'
   + '<tr><td><input type="checkbox"  name="wellToggle" id="wellToggle" class="css-checkbox" onclick="toggleWell()"/><label for="wellToggle" class="css-label">Display Oil/Gas Wells</label></td></tr>'
   + '<tr><td><input type="checkbox" name="fieldToggle" id="fieldToggle" class="css-checkbox" onclick="toggleField()"/><label for="fieldToggle" class="css-label">Display Oil/Gas Fields</label></td></tr></table>'
-  + '</br></br><p id="sidenote"> Please click on item in the map for more information </p>'
+  + '</br><p id="sidenote"> Please click on item in the map for more information </p>'
   return this._div;
 }
 selectionMenu.addTo(map);
 
-var fieldList = L.control();
-fieldList.onAdd = function(map){
+var fieldListBox = L.control();
+fieldListBox.onAdd = function(map){
   this._div = L.DomUtil.create('div', 'fieldListBox');
 
   this._div.innerHTML += '<h4> Oil and Gas Fields </h4>';
-  var allFields = findAllFields();
-  this._div.innerHTML += '<table>';
-  for(i=0; i < allFields.length; i++){
-    this._div.innerHTML += '<tr onclick="doSomething()"><td><p>' + allFields[i] + '</p></td></tr>'
-  }
-  this._div.innerHTML += '</table>';
 
+  var allFields = findAllFields();
+  for(i=0; i < allFields.length; i++){
+    if(allFields[i].FIELD_NAME != undefined){
+      this._div.innerHTML += '<li onclick=zoomToField(' + allFields[i].FIELD_ID + ')>' + allFields[i].FIELD_NAME + '</li>';
+    }
+  }
   return this._div;
 }
-fieldList.setPosition('topright');
-// fieldList.addTo(map); //DELETE
+fieldListBox.setPosition('topright');
 
 var credits = L.control();
 credits.onAdd = function(map){
@@ -91,8 +91,19 @@ credits.setPosition('bottomleft');
 credits.addTo(map);
 
 
-function doSomething(){
-  console.log("done");
+function zoomToField(fieldId){
+  console.log(fieldId);
+  //search json for feature with FIELD_ID
+  if(fieldJson != undefined){
+    for(var feature in fieldJson){
+
+    }
+  }
+
+  //zoomTofeature
+  function zoomToFeature(e) {
+      map.fitBounds(e.target.getBounds());
+  }
 }
 //=============================== Toggle Layers ==========================================//
 
@@ -108,33 +119,40 @@ function toggleParish(){
 }
 
 function toggleWell(){
+  console.log("well toggle");
   var checkbox = document.getElementById("wellToggle");
   if(checkbox.checked == true){
-    map.addLayer(wellPoints);
+    addWellPoints();
   }
   else {
-    map.removeLayer(wellPoints);
+    removeWellPoints();
   }
   orderLayers();
 }
 
 function toggleField(){
+  console.log("field toggle");
   var checkbox = document.getElementById("fieldToggle");
   if(checkbox.checked == true){
-    fieldList.addTo(map);
-    map.addLayer(fieldJson);
+    if(fieldJson != undefined){
+      fieldListBox.addTo(map);
+      map.addLayer(fieldJson);
+    }
   }
   else {
-    fieldList.removeFrom(map);
+    // fieldList.removeFrom(map); TODO
     map.removeLayer(fieldJson);
   }
   orderLayers();
 }
 
 function orderLayers(){
-  parishJson.bringToBack();
-  wellPoints.bringToFront(); //HMM
-  fieldJson.bringToFront();
+  if(parishJson != undefined){
+    parishJson.bringToBack();
+  }
+  if(fieldJson != undefined){
+    fieldJson.bringToFront();
+  }
 }
 
 //=============================== Parish Layer ==========================================//
@@ -150,12 +168,6 @@ jQuery.getJSON(parishesUrl, function(data){
 
   parishJson = L.geoJson(data, {
     onEachFeature: onEachFeature,
-    // pointToLayer: function(feature, latlng){
-    //   label = String(feature.properties.COUNTY);
-    //   return new L.CircleMarker(latlng, {
-    //     radius: 1
-    //   }).bindTooltip(label, {permanent: true, opacity: .7}).openTooltip();
-    // },
     style: parishStyle,
     filter: function(feature, parishLayer) {
       return feature.properties.STATE == 22;
@@ -288,7 +300,6 @@ function createWellPopup(feature, layer){
     var status = well.WELL_STATUS_CODE;
     if(status == 9 || status == 10){
       var popup = '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
-      // popup += '<tr><th> Well Serial Number </th><td>'+ feature.properties.well_serial_num +'</td></tr>';
       popup += '<tr><th> Well Name </th><td>' + well.WELL_NAME + '</td></tr>';
       popup += '<tr><th> Spud Date </th><td>' + well.SPUD_DATE + '</td></tr>';
 
@@ -313,15 +324,19 @@ function createWellPopup(feature, layer){
   layer.bindPopup(popup, popupOpts);
 }
 
-var addCsvMarkers = function() {
-    map.removeLayer(wellMarkers);
-    wellPoints.clearLayers();
+var addWellPoints = function() {
 
     wellMarkers = new L.MarkerClusterGroup(clusterOptions);
     wellPoints.addData(wellCoordsCsv);
     wellMarkers.addLayer(wellPoints);
 
     map.addLayer(wellMarkers);
+    return false;
+};
+
+var removeWellPoints = function() {
+    map.removeLayer(wellMarkers);
+    wellPoints.clearLayers();
     return false;
 };
 
@@ -334,7 +349,6 @@ if(typeof(String.prototype.strip) === "undefined") {
 map.addLayer(wellMarkers);
 
 // =========================================== Load Shapefile ========================================================//
-var fieldJson;
 let fieldStyle = function(feature) {
   var fieldType = feature.properties.Field_Type;
   if(fieldType == "Gas"){
@@ -355,6 +369,7 @@ let fieldStyle = function(feature) {
 }
 
 function createFieldPopup(feature, layer){
+  console.log("createPopup");
   if (feature.properties) {
     var fieldId = feature.properties.Field_Id;
     var popup = '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
@@ -369,18 +384,19 @@ function createFieldPopup(feature, layer){
   }
 }
 
-// jQuery.getJSON(fieldJsonUrl, function(data){
-//   let geoJSONOptions = {
-//     onEachFeature: createFieldPopup,
-//     style: fieldStyle
-//   }
-//
-//   fieldJson = L.geoJson(data, geoJSONOptions).addTo(map);
-// });
+jQuery.getJSON(fieldJsonUrl, addFields);
+
+var addFields = function(data) {
+  console.log("addFields");
+  fieldJson = L.geoJson(data, {
+    onEachFeature: createFieldPopup,
+    style: fieldStyle
+  });
+}
 
 // =========================================== ALL LOUISIANA CHART HELPERS ========================================================//
 function createChartDataJsonForState(){
-  var summaries = totalProductionByState();
+  var summaries = totalProductionByYearByState();
 
   var json = '{"Production": [';
   for(i=0; i < summaries.length; i++){
@@ -470,17 +486,23 @@ function renderChart(ctx, oilData, gasData, labels){
 
 // =========================================== PARISH CHART HELPERS ========================================================//
 function createChartDataJsonForParish(parishCode){
-  var summaries = totalProductionByState();
+  var summaries = totalProductionByYearByParish(parishCode);
 
   var json = '{"ParishProduction": [';
-  for(i=0; i < summaries.length; i++){
-    json += '{ "year": "' + summaries[i].year + '",';
-    json += '"oilSum":' + summaries[i].oilProd + ',';
-    json += '"gasSum": ' + summaries[i].gasProd + ' },';
+  if(summaries.length == 0){
+    json += '{}]}';
+  }
+  else{
+    for(i=0; i < summaries.length; i++){
+      json += '{ "year": "' + summaries[i].year + '",';
+      json += '"oilSum":' + summaries[i].oilProd + ',';
+      json += '"gasSum": ' + summaries[i].gasProd + ' },';
+    }
+
+    json = json.substring(0, json.length - 1); //remove trailing comma
+    json += ']}';
   }
 
-  json = json.substring(0, json.length - 1); //remove trailing comma
-  json += ']}';
   var obj = JSON.parse(json);
 
   return obj;
@@ -543,8 +565,7 @@ function totalProductionByField(fieldId){
   for(var well in wellInfo){
     if(well.WELL_STATUS_CODE == 10 || well.WELL_STATUS_CODE == 9){
       if(well.FIELD_ID == fieldId){
-        production += well.GAS_PRODUCTION;
-        production += well.OIL_PRODUCTION;
+        production += sumProduction(well);
       }
     }
   }
@@ -556,8 +577,7 @@ function totalProductionByParish(parishCode){
   for(var well in wellInfo){
     if(well.WELL_STATUS_CODE == 10 || well.WELL_STATUS_CODE == 9){
       if(well.PARISH_CODE == parishCode){
-        production += well.GAS_PRODUCTION;
-        production += well.OIL_PRODUCTION;
+        production += sumProduction(well);
       }
     }
   }
@@ -604,7 +624,7 @@ function totalNumOfInjectorsByParish(parishCode){
   return injectInParish;
 }
 
-function totalProductioninYearByParish(parishCode){
+function totalProductionByYearByParish(parishCode){
   var years = new Set();
   var prodJson = [];
 
@@ -631,7 +651,7 @@ function totalProductioninYearByParish(parishCode){
   return prodJson;
 }
 
-function totalProductionByState(){
+function totalProductionByYearByState(){
   var years = new Set();
   var prodJson = [];
 
@@ -764,7 +784,7 @@ function findAllFieldsInParish(parishCode){
 function findAllFields(){
   var allFields = [];
   for(i = 0; i < fieldNames.length-1; i++){
-    allFields.push(fieldNames[i].FIELD_NAME);
+    allFields.push(fieldNames[i]);
   }
   return allFields;
 }
@@ -823,7 +843,6 @@ $(document).ready( function() {
         },
         success: function(csv) {
             wellCoordsCsv = csv;
-            addCsvMarkers();
         }
     });
     $.ajax ({
