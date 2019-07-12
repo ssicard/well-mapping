@@ -4,16 +4,12 @@ var oilFieldColorOpaque = "rgba(245,66,66, .2)";
 var gasFieldColor = "#10a14c";
 var gasFieldColorOpaque = "rgba(16,161,76, .2)";
 var parishColor = "#FDD023";
-var prodDetailsCsv;
-var prodCsv;
-var wellInfoCsv;
 var wellCoordsCsv;
-var fieldNamesCsv;
-var fieldParishCsv;
 var prevClickedParish;
+var wellInfo = [];
 var parishJson;
 var fieldJson;
-var chartData
+var chartData;
 
 // SETTING MAP VARS //
 var basemap = new L.TileLayer(baseUrl, {maxZoom: 20, attribution: baseAttribution, subdomains: subdomains, opacity: opacity});
@@ -142,7 +138,7 @@ function toggleField(){
   else {
     if(fieldJson != undefined){
       map.removeLayer(fieldJson);
-      // fieldList.removeFrom(map); TODO
+      map.removeLayer(fieldListBox); //TODO
     }
   }
   orderLayers();
@@ -293,6 +289,7 @@ var popupOpts = {
 };
 
 function createWellPopup(feature, layer){
+  console.log(feature.properties.well_serial_num);
   var well = findWellInfo(feature.properties.well_serial_num);
   if(well == null){
     var popup = 'Something went wrong';
@@ -391,7 +388,7 @@ jQuery.getJSON(fieldJsonUrl, function(data){
     style: fieldStyle
   }
 
-  fieldJson = L.geoJson(data, geoJSONOptions).addTo(map);
+  fieldJson = L.geoJson(data, geoJSONOptions);
 });
 
 
@@ -678,7 +675,7 @@ function totalProductionByYearByState(){
 }
 
 // =========================================== Populate CSV Arrays ========================================================//
-function populateProd(){
+function populateProd(prodCsv){
   Papa.parse(prodCsv, {
     header: true,
     dynamicTyping: true,
@@ -689,7 +686,7 @@ function populateProd(){
   });
 }
 
-function populateProdDetails(){
+function populateProdDetails(prodDetailsCsv){
     Papa.parse(prodDetailsCsv, {
       header: true,
       dynamicTyping: true,
@@ -701,18 +698,30 @@ function populateProdDetails(){
     createProdChartForState();
 }
 
-function populateWellInfo(){
+function populateWellInfo(wellInfoCsv){
+  console.log("populateWellInfo");
   Papa.parse(wellInfoCsv, {
     header:true,
     dynamicTyping: true,
     delimiter: "^",
-    complete: function(results) {
-      wellInfo = results.data;
+    worker: true,
+    step: function(row){
+      console.log("row:");
+      if(row.data != undefined){
+        wellInfo.push(row.data);
+      }
+      else {
+        console.log(row);
+      }
+    },
+    complete: function() {
+      console.log("done");
+      console.log(wellInfo);
     }
   })
 }
 
-function populateFieldNames(){
+function populateFieldNames(fieldNamesCsv){
   Papa.parse(fieldNamesCsv, {
     header:true,
     dynamicTyping: true,
@@ -723,7 +732,7 @@ function populateFieldNames(){
   })
 }
 
-function populateFieldParishes(){
+function populateFieldParishes(fieldParishCsv){
   Papa.parse(fieldParishCsv, {
     header:true,
     dynamicTyping: true,
@@ -801,13 +810,18 @@ $(document).init( function() {
             alert('Error loading' + wellUrl);
         },
         success: function(csv) {
-            wellInfoCsv = csv;
-            populateWellInfo();
+            populateWellInfo(csv);
         }
     });
 });
 
 $(document).ready( function() {
+  $(document).ajaxStart(function () {
+    $("#loading").show();
+  }).ajaxStop(function () {
+    $("#loading").hide();
+  })
+
     $.ajax ({
         type:'GET',
         dataType:'text',
@@ -817,8 +831,7 @@ $(document).ready( function() {
             alert('Error loading' + fieldNamesUrl);
         },
         success: function(csv) {
-            fieldNamesCsv = csv;
-            populateFieldNames();
+            populateFieldNames(csv);
         }
     });
     $.ajax ({
@@ -830,8 +843,7 @@ $(document).ready( function() {
             alert('Error loading' + fieldParishUrl);
         },
         success: function(csv) {
-            fieldParishCsv = csv;
-            populateFieldParishes();
+            populateFieldParishes(csv);
         }
     });
     $.ajax ({
@@ -849,27 +861,13 @@ $(document).ready( function() {
     $.ajax ({
         type:'GET',
         dataType:'text',
-        url: wellUrl,
-        contentType: "text/csv; charset=utf-8",
-        error: function() {
-            alert('Error loading' + wellUrl);
-        },
-        success: function(csv) {
-            wellInfoCsv = csv;
-            populateWellInfo();
-        }
-    });
-    $.ajax ({
-        type:'GET',
-        dataType:'text',
         url: prodDetailsUrl,
         contentType: "text/csv; charset=utf-8",
         error: function() {
             alert('Error loading' + prodDetailsUrl);
         },
         success: function(csv) {
-            prodDetailsCsv = csv;
-            populateProdDetails();
+            populateProdDetails(csv);
         }
     });
     $.ajax ({
@@ -881,8 +879,7 @@ $(document).ready( function() {
             alert('Error loading' + prodUrl);
         },
         success: function(csv) {
-            prodCsv = csv;
-            populateProd();
+            populateProd(csv);
         }
     });
 });
