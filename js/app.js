@@ -77,15 +77,24 @@ fieldListBox.setPosition('topright');
 var credits = L.control();
 credits.onAdd = function(map){
   this._div = L.DomUtil.create('div', 'credits');
-  this._div.innerHTML = '<h5> Created By </h5>';
-  this._div.innerHTML += '<table>'
-  + '<tr><th> Jyotsna Sharma </th><td> Assistant Professor, Department of Petroleum Engineering</td></tr>'
-  + '<tr><th> Sarah Sicard </th><td> Graduate, Department of Computer Science</td></tr></table>';
+  this._div.innerHTML = '<table>'
+  + '<tr><th> Site Developer: </th><td>Sarah Sicard (BS, Department of Computer Science)</td></tr>'
+  + '<tr><th> Project Supervisor: </th><td>Jyotsna Sharma (Assistant Professor, Department of Petroleum Engineering)</td></tr>'
+  + '<tr><th> Data Source: </th><td> Louisiana Department of Natural Resources (DNR)</td></tr>'
+  + '<tr><th> Acknowledgements: </th><td> Carrie Wiebelt and James Devitt (DNR) </td></tr></table';
   return this._div;
 }
 credits.setPosition('bottomleft');
 credits.addTo(map);
-
+$("#credits").click(function(){
+    if($(this).html() == "-"){
+        $(this).html("+");
+    }
+    else{
+        $(this).html("-");
+    }
+    $("#box").slideToggle();
+});
 
 function zoomToField(fieldId){
   console.log(fieldId);
