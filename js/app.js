@@ -39,7 +39,7 @@ L.control.zoom({
 var prodChartBox = L.control();
 prodChartBox.onAdd = function(map) {
   this._div = L.DomUtil.create('div', 'prodChartBox');
-  this._div.innerHTML = '<canvas id="stateChart"></canvas>';
+  this._div.innerHTML = '<canvas id="stateChartGas"></canvas><canvas id="stateChartOil"></canvas>';
   return this._div;
 }
 prodChartBox.setPosition('bottomright');
@@ -232,7 +232,7 @@ function createParishPopup(parishLayer, feature){
   if (feature.properties) {
     var parishCode = translateToParishCode(feature.properties.COUNTY);
     var details = findParishProdDetails(parishCode);
-    popup += '<canvas id="parishChart"></canvas>';
+    popup += '<canvas id="parishChartGas"></canvas><canvas id="parishChartOil"></canvas>';
 
     popup += '<table class="table table-striped table-bordered table-condensed"><tr><th> Parish Name </th><td>'+ feature.properties.NAME +'</td></tr>';
 
@@ -427,37 +427,52 @@ function createProdChartForState() {
 // =========================================== RENDER CHART HELPERS ========================================================//
 
 function renderChartForState(oilData, gasData, labels) {
-    var ctx = document.getElementById("stateChart").getContext('2d');
-    renderChart(ctx, oilData, gasData, labels);
+    var ctx = document.getElementById("stateChartGas").getContext('2d');
+    renderChart(ctx, 'Gas Production', gasData, labels);
+    ctx = document.getElementById("stateChartOil").getContext('2d');
+    renderChart(ctx, 'Oil Production', oilData, labels);
 }
 
 function renderChartForParish(oilData, gasData, labels){
-  var ctx = document.getElementById("parishChart").getContext('2d');
-  renderChart(ctx, oilData, gasData, labels);
+  var ctx = document.getElementById("parishChartGas").getContext('2d');
+  renderChart(ctx, 'Gas Production', gasData, labels);
+  var ctx = document.getElementById("parishChartOil").getContext('2d');
+  renderChart(ctx, 'Oil Production', oilData, labels);
 }
 
-function renderChart(ctx, oilData, gasData, labels){
+function renderChartForField(oilData, gasData, labels){
+  var ctx = document.getElementById("fieldChartGas").getContext('2d');
+  renderChart(ctx, 'Gas Production', gasData, labels);
+  var ctx = document.getElementById("fieldChartOil").getContext('2d');
+  renderChart(ctx, 'Oil Production', oilData, labels);
+}
+
+function renderChart(ctx, chartLabel, data, dataLabels){
+  if(chartLabel == 'Oil Production'){
+    fieldColor = oilFieldColor;
+    fieldColorOpaque = oilFieldColorOpaque;
+    text = 'Louisiana Oil Production by Year';
+  }
+  else {
+    fieldColor = gasFieldColor;
+    fieldColorOpaque = gasFieldColorOpaque;
+    text = 'Louisiana Gas Production by Year';
+  }
   var myChart = new Chart(ctx, {
       type: 'line',
       data: {
           labels: labels,
           datasets: [{
-              label: 'Oil Production',
-              data: oilData,
-              borderColor: oilFieldColor,
-              backgroundColor: oilFieldColorOpaque,
-          },
-          {
-              label: 'Gas Production',
-              data: gasData,
-              borderColor: gasFieldColor,
-              backgroundColor: gasFieldColorOpaque,
+              label: chartLabel,
+              data: data,
+              borderColor: fieldColor,
+              backgroundColor: fieldColorOpaque,
           }]
       },
       options: {
         title: {
           display: true,
-          text: 'Louisiana Oil/Gas Production By Year'
+          text: text
         },
         scales: {
             yAxes: [{
@@ -484,6 +499,8 @@ function renderChart(ctx, oilData, gasData, labels){
 function createChartDataJsonForParish(parishCode){
   var summaries = totalProductionByYearByParish(parishCode);
 
+  console.log("summaries");
+  console.log(summaries);
   var json = '{"ParishProduction": [';
   if(summaries.length == 0){
     json += '{}]}';
@@ -499,6 +516,7 @@ function createChartDataJsonForParish(parishCode){
     json += ']}';
   }
 
+  console.log(obj);
   var obj = JSON.parse(json);
 
   return obj;
@@ -624,6 +642,7 @@ function totalProductionByYearByParish(parishCode){
   var years = new Set();
   var prodJson = [];
 
+  console.log("prodDetails" + prodDetails.length);
   for(i=0; i < prodDetails.length; i++){
     if(prodDetails[i].PARISH_CODE == parishCode){
       var year = transformDate(prodDetails[i].CREATE_DATE);
