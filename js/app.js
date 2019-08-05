@@ -86,15 +86,6 @@ credits.onAdd = function(map){
 }
 credits.setPosition('bottomleft');
 credits.addTo(map);
-$("#credits").click(function(){
-    if($(this).html() == "-"){
-        $(this).html("+");
-    }
-    else{
-        $(this).html("-");
-    }
-    $("#box").slideToggle();
-});
 
 function zoomToField(fieldId){
   console.log(fieldId);
@@ -124,7 +115,6 @@ function toggleParish(){
 }
 
 function toggleWell(){
-  console.log("well toggle");
   var checkbox = document.getElementById("wellToggle");
   if(checkbox.checked == true){
     addWellPoints();
@@ -136,7 +126,6 @@ function toggleWell(){
 }
 
 function toggleField(){
-  console.log("field toggle");
   var checkbox = document.getElementById("fieldToggle");
   if(checkbox.checked == true){
     if(fieldJson != undefined){
@@ -708,14 +697,13 @@ function populateProdDetails(prodDetailsCsv){
 }
 
 function populateWellInfo(wellInfoCsv){
-  console.log("populateWellInfo");
   Papa.parse(wellInfoCsv, {
     header:true,
     dynamicTyping: true,
     delimiter: "^",
     worker: true,
     step: function(row){
-      console.log("row:");
+      console.log("wellInfo row:");
       if(row.data != undefined){
         wellInfo.push(row.data);
       }
@@ -825,12 +813,6 @@ $(document).init( function() {
 });
 
 $(document).ready( function() {
-  $(document).ajaxStart(function () {
-    $("#loading").show();
-  }).ajaxStop(function () {
-    $("#loading").hide();
-  })
-
     $.ajax ({
         type:'GET',
         dataType:'text',
