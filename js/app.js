@@ -287,10 +287,11 @@ var popupOpts = {
 };
 
 function createWellPopup(feature, layer){
-  console.log(feature.properties.well_serial_num);
+  console.log("Well Serial Num:" + feature.properties.well_serial_num);
   var well = findWellInfo(feature.properties.well_serial_num);
   if(well == null){
-    var popup = 'Something went wrong';
+    var popup = 'Something went wrong'
+              + feature.properties.well_serial_num;
   }
   else{
     var status = well.WELL_STATUS_CODE;
@@ -394,15 +395,21 @@ jQuery.getJSON(fieldJsonUrl, function(data){
 function createChartDataJsonForState(){
   var summaries = totalProductionByYearByState();
 
-  var json = '{"Production": [';
-  for(i=0; i < summaries.length; i++){
-    json += '{ "year": "' + summaries[i].year + '",';
-    json += '"oilSum":' + summaries[i].oilProd + ',';
-    json += '"gasSum": ' + summaries[i].gasProd + ' },';
+  var json = '{"Production": {';
+  if(summaries.length == 0){
+    json += '}}';
+  }
+  else{
+    for(i=0; i < summaries.length; i++){
+      json += '"' + summaries[i].year + '": {';
+      json += '"oilSum":' + summaries[i].oilProd + ',';
+      json += '"gasSum": ' + summaries[i].gasProd + ' },';
+    }
+
+    json = json.substring(0, json.length - 1); //remove trailing comma
+    json += '}}';
   }
 
-  json = json.substring(0, json.length - 1); //remove trailing comma
-  json += ']}';
   var obj = JSON.parse(json);
 
   return obj;
@@ -415,11 +422,12 @@ function createProdChartForState() {
 
   chartData = createChartDataJsonForState();
   var dataArr = chartData.Production;
+  console.log(dataArr);
 
-  for(i=0; i < dataArr.length; i++){
-   labels.push(dataArr[i].year);
-   oilData.push(dataArr[i].oilSum);
-   gasData.push(dataArr[i].gasSum)
+  labels = Object.keys(dataArr);
+  for(var k in dataArr) {
+    oilData.push(dataArr[k].oilSum);
+    gasData.push(dataArr[k].gasSum);
   }
   renderChartForState(oilData, gasData, labels);
 }
@@ -501,13 +509,13 @@ function createChartDataJsonForParish(parishCode){
 
   console.log("summaries");
   console.log(summaries);
-  var json = '{"ParishProduction": [';
+  var json = '{"ParishProduction": {';
   if(summaries.length == 0){
-    json += '{}]}';
+    json += '}}';
   }
   else{
     for(i=0; i < summaries.length; i++){
-      json += '{ "year": "' + summaries[i].year + '",';
+      json += '"' + summaries[i].year + '": {';
       json += '"oilSum":' + summaries[i].oilProd + ',';
       json += '"gasSum": ' + summaries[i].gasProd + ' },';
     }
@@ -515,9 +523,15 @@ function createChartDataJsonForParish(parishCode){
     json = json.substring(0, json.length - 1); //remove trailing comma
     json += ']}';
   }
+  console.log("preparse");
+
+
+  console.log(json);
+  var obj = JSON.parse(json);
+  console.log("postparse");
 
   console.log(obj);
-  var obj = JSON.parse(json);
+
 
   return obj;
 }
@@ -530,11 +544,12 @@ function createProdChartForParish() {
   chartData = createChartDataJsonForParish();
   var dataArr = chartData.ParishProduction;
 
-  for(i=0; i < dataArr.length; i++){
-   labelsParish.push(dataArr[i].year);
-   oilDataParish.push(dataArr[i].oilSum);
-   gasDataParish.push(dataArr[i].gasSum)
+  labels = Object.keys(dataArr);
+  for(var k in dataArr) {
+    oilData.push(dataArr[k].oilSum);
+    gasData.push(dataArr[k].gasSum);
   }
+  renderChartForParish(oilData, gasData, labels);
 }
 
 // =========================================== Helpers ========================================================//
@@ -663,6 +678,7 @@ function totalProductionByYearByParish(parishCode){
     }
   }
 
+  //TODO sort by year
   return prodJson;
 }
 
