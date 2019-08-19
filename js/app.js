@@ -8,6 +8,7 @@ var wellCoordsCsv;
 var prevClickedParish;
 var wellInfo = [];
 var prodDetails = [];
+var prodInfo = [];
 var parishJson;
 var fieldJson;
 var chartData;
@@ -265,11 +266,11 @@ function createParishPopup(parishLayer, feature){
     popup += 'There is no information for this parish.';
   }
   popup += "</popup-content>";
+  parishLayer.bindPopup(popup, popupOpts);
 
-
-  parishLayer.bindPopup(popup, popupOpts).on('popupopen', function (popup) {
-    renderChartForParish(labelsParish, oilDataParish, gasDataParish);
-  });
+  // parishLayer.bindPopup(popup, popupOpts).on('popupopen', function (popup) {
+  //   renderChartForParish(labelsParish, oilDataParish, gasDataParish);
+  // });
 }
 
 //=============================== Well Mapping ==========================================//
@@ -370,7 +371,8 @@ let fieldStyle = function(feature) {
 function createFieldPopup(feature, layer){
   if (feature.properties) {
     var fieldId = feature.properties.Field_Id;
-    var popup = '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
+    var popup = '<canvas id="fieldChartGas"></canvas><canvas id="fieldChartOil"></canvas>'
+    popup += '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
     popup += '<tr><th> Field Name </th><td>'+ feature.properties.Field_Name +'</td></tr>';
     popup += '<tr><th> Field ID </th><td>'+ feature.properties.Field_ID +'</td></tr>';
     popup += '<tr><th> Field Type </th><td>'+ feature.properties.Field_Type +'</td></tr>';
@@ -378,7 +380,9 @@ function createFieldPopup(feature, layer){
     popup += '<tr><th> Number of Injectors </th><td>' + totalNumOfInjectorsByField(fieldId) +'</td></tr>';
     popup += '<tr><th> Total Production </th><td>' + totalProductionByField(fieldId) + '</td></tr>';
     popup += "</table></popup-content>";
-    layer.bindPopup(popup, popupOpts);
+    layer.bindPopup(popup, popupOpts).on('popupopen', function (popup) {
+      createProdChartForField(fieldId);
+    });;
   }
 }
 
@@ -392,7 +396,7 @@ jQuery.getJSON(fieldJsonUrl, function(data){
 });
 
 
-// =========================================== ALL LOUISIANA CHART HELPERS ========================================================//
+// =========================================== CHART HELPERS ========================================================//
 function createChartDataJsonForState(){
   var summaries = totalProductionByYearByState();
 
@@ -432,6 +436,45 @@ function createProdChartForState() {
     gasData.push(dataArr[k].gasSum);
   }
   renderChartForState(oilData, gasData, labels);
+}
+
+function createChartDataJsonForField(fieldId){
+  var summaries = totalProductionByYearByField(fieldId);
+
+  var json = '{"Production": {';
+  if(summaries.length == 0){
+    json += '}}';
+  }
+  else{
+    for(i=0; i < summaries.length; i++){
+      json += '"' + summaries[i].year + '": {';
+      json += '"oilSum":' + summaries[i].oilProd + ',';
+      json += '"gasSum": ' + summaries[i].gasProd + ' },';
+    }
+
+    json = json.substring(0, json.length - 1); //remove trailing comma
+    json += '}}';
+  }
+
+  var obj = JSON.parse(json);
+
+  return obj;
+}
+
+function createProdChartForField(fieldId) {
+  oilData = [];
+  gasData = [];
+  labels =  [];
+
+  chartData = createChartDataJsonForField(fieldId);
+  var dataArr = chartData.Production;
+
+  labels = Object.keys(dataArr);
+  for(var k in dataArr) {
+    oilData.push(dataArr[k].oilSum);
+    gasData.push(dataArr[k].gasSum);
+  }
+  renderChartForField(oilData, gasData, labels);
 }
 
 // =========================================== RENDER CHART HELPERS ========================================================//
@@ -716,14 +759,59 @@ function totalProductionByYearByState(){
   return prodJson;
 }
 
+function totalProductionByYearByField(fieldId){
+  var years = new Set();
+  var prodJson = [];
+
+  for(i=0; i < prodInfo.length; i++){
+    if(prodInfo[i].FIELD_ID == fieldId){
+      prodDetail = findParishProdDetails(prodInfo[i].OGP_SEQ_NUM);
+      if(prodDetail == null){
+        break;
+      }
+      else{
+        if(prodDetail.CREATE_DATE == undefined){
+          break;
+        }
+        var year = getYear(prodDetail.CREATE_DATE);
+        if(years.has(year)){ //If year is already in set, total with prev value
+          var index = findCorrectYear(year, prodJson);
+          prodJson[index]['oilProd'] = prodJson[index]['oilProd'] + prodDetail.OIL_PRODUCTION;
+          prodJson[index]['gasProd'] = prodJson[index]['gasProd'] + prodDetail.GAS_PRODUCTION;
+        }
+        else{ //else add to set
+          years.add(year);
+          item = {};
+          item["year"] = year;
+          item["gasProd"] = prodDetail.GAS_PRODUCTION;
+          item["oilProd"] = prodDetail.OIL_PRODUCTION;
+
+          prodJson.push(item);
+        }
+      }
+    }
+  }
+
+  return prodJson;
+}
+
 // =========================================== Populate CSV Arrays ========================================================//
-function populateProd(prodCsv){
+function populateProdInfo(prodCsv){
   Papa.parse(prodCsv, {
     header: true,
     dynamicTyping: true,
     delimiter: "^",
+    worker: true,
+    step: function(row){
+      if(row.data != undefined){
+        prodInfo.push(row.data);
+      }
+      else {
+        console.log("error" + row);
+      }
+    },
     complete: function(results) {
-      prodInfo = results.data;
+      console.log("done loading prodInfo")
     }
   });
 }
@@ -811,6 +899,15 @@ function findParishProdInfo(ogpSeqNum){
   return null;
 }
 
+function findParishProdDetails(ogpSeqNum){
+  for(i = 0; i < prodDetails.length; i++){
+    if(ogpSeqNum == prodDetails[i].OGP_SEQ_NUM){
+      return prodDetails[i];
+    }
+  }
+  return null;
+}
+
 function findWellInfo(wellSerialNum){
   for(i = 0; i < wellInfo.length-1; i++){
     if(wellSerialNum == wellInfo[i].WELL_SERIAL_NUM){
@@ -873,6 +970,18 @@ $(document).init( function() {
             populateProdDetails(csv);
         }
     });
+    $.ajax ({
+        type:'GET',
+        dataType:'text',
+        url: prodUrl,
+        contentType: "text/csv; charset=utf-8",
+        error: function() {
+            alert('Error loading' + prodUrl);
+        },
+        success: function(csv) {
+            populateProdInfo(csv);
+        }
+    });
 });
 
 $(document).ready( function() {
@@ -910,18 +1019,6 @@ $(document).ready( function() {
         },
         success: function(csv) {
             wellCoordsCsv = csv;
-        }
-    });
-    $.ajax ({
-        type:'GET',
-        dataType:'text',
-        url: prodUrl,
-        contentType: "text/csv; charset=utf-8",
-        error: function() {
-            alert('Error loading' + prodUrl);
-        },
-        success: function(csv) {
-            populateProd(csv);
         }
     });
 });
