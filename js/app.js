@@ -7,6 +7,7 @@ var parishColor = "#FDD023";
 var wellCoordsCsv;
 var prevClickedParish;
 var wellInfo = [];
+var prodDetails = [];
 var parishJson;
 var fieldJson;
 var chartData;
@@ -301,7 +302,7 @@ function createWellPopup(feature, layer){
       popup += '<tr><th> Spud Date </th><td>' + well.SPUD_DATE + '</td></tr>';
 
       if(status == 9){
-        popup += '<tr><th> Producer/Injector </th><td> Injector /td></tr>';
+        popup += '<tr><th> Producer/Injector </th><td> Injector </td></tr>';
       }
       else if(status == 10){
         popup += '<tr><th> Producer/Injector </th><td> Producer </td></tr>';
@@ -416,13 +417,14 @@ function createChartDataJsonForState(){
 }
 
 function createProdChartForState() {
+  console.log("creating prodChartForState");
+
   oilData = [];
   gasData = [];
   labels =  [];
 
   chartData = createChartDataJsonForState();
   var dataArr = chartData.Production;
-  console.log(dataArr);
 
   labels = Object.keys(dataArr);
   for(var k in dataArr) {
@@ -572,8 +574,10 @@ function sumProduction(prodDetail){
   return prodDetail.GAS_PRODUCTION + prodDetail.OIL_PRODUCTION;
 }
 
-function transformDate(date){
-  return date.replace(/\d+-\w+-/, "");
+function getYear(date){
+  if(date != null){
+    return date.replace(/\d+-\w+-/, "");
+  }
 }
 
 if(typeof(String.prototype.strip) === "undefined") {
@@ -660,7 +664,10 @@ function totalProductionByYearByParish(parishCode){
   console.log("prodDetails" + prodDetails.length);
   for(i=0; i < prodDetails.length; i++){
     if(prodDetails[i].PARISH_CODE == parishCode){
-      var year = transformDate(prodDetails[i].CREATE_DATE);
+      if(prodDetails[i].CREATE_DATE == undefined){
+        break;
+      }
+      var year = getYear(prodDetails[i].CREATE_DATE);
       if(years.has(year)){ //If year is already in set, total with prev value
         var index = findCorrectYear(year, prodJson);
         prodJson[index]['oilProd'] = prodJson[index]['oilProd'] + prodDetails[i].OIL_PRODUCTION;
@@ -678,7 +685,6 @@ function totalProductionByYearByParish(parishCode){
     }
   }
 
-  //TODO sort by year
   return prodJson;
 }
 
@@ -687,7 +693,10 @@ function totalProductionByYearByState(){
   var prodJson = [];
 
   for(i=0; i < prodDetails.length; i++){
-    var year = transformDate(prodDetails[i].CREATE_DATE);
+    if(prodDetails[i].CREATE_DATE == undefined){
+      break;
+    }
+    var year = getYear(prodDetails[i].CREATE_DATE);
     if(years.has(year)){ //If year is already in set, total with prev value
       var index = findCorrectYear(year, prodJson);
       prodJson[index]['oilProd'] = prodJson[index]['oilProd'] + prodDetails[i].OIL_PRODUCTION;
@@ -723,12 +732,21 @@ function populateProdDetails(prodDetailsCsv){
     Papa.parse(prodDetailsCsv, {
       header: true,
       dynamicTyping: true,
-      delimiter: "^",
+      delimiter: ",",
+      worker: true,
+      step: function(row){
+        if(row.data != undefined){
+          prodDetails.push(row.data);
+        }
+        else {
+          console.log("error" + row);
+        }
+      },
       complete: function(results) {
-        prodDetails = results.data;
+        console.log("done loading prodDetails")
+        createProdChartForState();
       }
     });
-    createProdChartForState();
 }
 
 function populateWellInfo(wellInfoCsv){
@@ -738,17 +756,15 @@ function populateWellInfo(wellInfoCsv){
     delimiter: "^",
     worker: true,
     step: function(row){
-      console.log("wellInfo row:");
       if(row.data != undefined){
         wellInfo.push(row.data);
       }
       else {
-        console.log(row);
+        console.log("error" + row);
       }
     },
     complete: function() {
-      console.log("done");
-      console.log(wellInfo);
+      console.log("done loading wellInfo");
     }
   })
 }
@@ -845,6 +861,18 @@ $(document).init( function() {
             populateWellInfo(csv);
         }
     });
+    $.ajax ({
+        type:'GET',
+        dataType:'text',
+        url: prodDetailsUrl,
+        contentType: "text/csv; charset=utf-8",
+        error: function() {
+            alert('Error loading' + prodDetailsUrl);
+        },
+        success: function(csv) {
+            populateProdDetails(csv);
+        }
+    });
 });
 
 $(document).ready( function() {
@@ -882,18 +910,6 @@ $(document).ready( function() {
         },
         success: function(csv) {
             wellCoordsCsv = csv;
-        }
-    });
-    $.ajax ({
-        type:'GET',
-        dataType:'text',
-        url: prodDetailsUrl,
-        contentType: "text/csv; charset=utf-8",
-        error: function() {
-            alert('Error loading' + prodDetailsUrl);
-        },
-        success: function(csv) {
-            populateProdDetails(csv);
         }
     });
     $.ajax ({
