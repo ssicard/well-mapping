@@ -223,7 +223,7 @@ function displayProdDataByParish(e) {
   if(parishCode > 0 && parishCode < 69){
     highlightFeature(parishLayer);
     createParishPopup(parishLayer, parishLayer.feature);
-    createProdChartForParish(translateToParishCode(parishLayer.feature.properties.COUNTY));
+    // createProdChartForParish(translateToParishCode(parishLayer.feature.properties.COUNTY));
   }
 }
 
@@ -268,9 +268,9 @@ function createParishPopup(parishLayer, feature){
   popup += "</popup-content>";
   parishLayer.bindPopup(popup, popupOpts);
 
-  // parishLayer.bindPopup(popup, popupOpts).on('popupopen', function (popup) {
-  //   renderChartForParish(labelsParish, oilDataParish, gasDataParish);
-  // });
+  parishLayer.bindPopup(popup, popupOpts).on('popupopen', function (popup) {
+    createProdChartForParish(parishCode);
+  });
 }
 
 //=============================== Well Mapping ==========================================//
@@ -370,7 +370,7 @@ let fieldStyle = function(feature) {
 
 function createFieldPopup(feature, layer){
   if (feature.properties) {
-    var fieldId = feature.properties.Field_Id;
+    var fieldId = feature.properties.Field_ID;
     var popup = '<canvas id="fieldChartGas"></canvas><canvas id="fieldChartOil"></canvas>'
     popup += '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
     popup += '<tr><th> Field Name </th><td>'+ feature.properties.Field_Name +'</td></tr>';
@@ -440,6 +440,9 @@ function createProdChartForState() {
 
 function createChartDataJsonForField(fieldId){
   var summaries = totalProductionByYearByField(fieldId);
+  console.log("creating json");
+  console.log("summaries");
+  console.log(summaries);
 
   var json = '{"Production": {';
   if(summaries.length == 0){
@@ -462,12 +465,15 @@ function createChartDataJsonForField(fieldId){
 }
 
 function createProdChartForField(fieldId) {
+  console.log("creating prod chart for field" + fieldId);
   oilData = [];
   gasData = [];
   labels =  [];
 
   chartData = createChartDataJsonForField(fieldId);
   var dataArr = chartData.Production;
+  console.log("dataArr");
+  console.log(dataArr);
 
   labels = Object.keys(dataArr);
   for(var k in dataArr) {
@@ -760,13 +766,16 @@ function totalProductionByYearByState(){
 }
 
 function totalProductionByYearByField(fieldId){
+  console.log("totalProductionByYearByField");
   var years = new Set();
   var prodJson = [];
 
   for(i=0; i < prodInfo.length; i++){
     if(prodInfo[i].FIELD_ID == fieldId){
+      console.log("OGP_SEQ_NUM" + prodInfo[i].OGP_SEQ_NUM);
       prodDetail = findParishProdDetails(prodInfo[i].OGP_SEQ_NUM);
       if(prodDetail == null){
+        console.log("no details");
         break;
       }
       else{
