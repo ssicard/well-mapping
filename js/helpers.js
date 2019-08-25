@@ -5,3 +5,11 @@ function checkProdInfoFormat(productionInfo){
   }
   return productionInfo;
 }
+
+function checkProdDetailsFormat(productionDetails){
+  if(productionDetails.length == 1){
+    //its still the json in the JSON
+    return productionDetails[0];
+  }
+  return productionDetails;
+}

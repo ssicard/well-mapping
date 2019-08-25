@@ -362,109 +362,7 @@ jQuery.getJSON(fieldJsonUrl, function(data){
   fieldJson = L.geoJson(data, geoJSONOptions);
 });
 
-
-// =========================================== CHART HELPERS ========================================================//
-function createChartDataJsonForState(){
-  console.log("#createChartDataJsonForState");
-  var summaries = totalProductionByYearByState();
-  console.log("summaries");
-  console.log(summaries.length);
-
-  var json = '{"Production": {';
-  if(summaries.length == 0){
-    json += '}}';
-  }
-  else{
-    for(i=0; i < summaries.length; i++){
-      json += '"' + summaries[i].year + '": {';
-      json += '"oilSum":' + summaries[i].oilProd + ',';
-      json += '"gasSum": ' + summaries[i].gasProd + ' },';
-    }
-
-    json = json.substring(0, json.length - 1); //remove trailing comma
-    json += '}}';
-  }
-
-  var obj = JSON.parse(json);
-
-  return obj;
-}
-
-function createProdChartForState() {
-  console.log("creating prodChartForState");
-
-  oilData = [];
-  gasData = [];
-  labels =  [];
-
-  chartData = createChartDataJsonForState();
-  var dataArr = chartData.Production;
-  console.log("dataArr");
-  console.log(dataArr);
-
-
-  labels = Object.keys(dataArr);
-  for(var k in dataArr) {
-    oilData.push(dataArr[k].oilSum);
-    gasData.push(dataArr[k].gasSum);
-  }
-  renderChartForState(oilData, gasData, labels);
-}
-
-function createChartDataJsonForField(fieldId){
-  var summaries = totalProductionByYearByField(fieldId);
-  console.log("creating json");
-  console.log("summaries");
-  console.log(summaries);
-
-  var json = '{"Production": {';
-  if(summaries.length == 0){
-    json += '}}';
-  }
-  else{
-    for(i=0; i < summaries.length; i++){
-      json += '"' + summaries[i].year + '": {';
-      json += '"oilSum":' + summaries[i].oilProd + ',';
-      json += '"gasSum": ' + summaries[i].gasProd + ' },';
-    }
-
-    json = json.substring(0, json.length - 1); //remove trailing comma
-    json += '}}';
-  }
-
-  var obj = JSON.parse(json);
-
-  return obj;
-}
-
-function createProdChartForField(fieldId) {
-  console.log("creating prod chart for field" + fieldId);
-  oilData = [];
-  gasData = [];
-  labels =  [];
-
-  chartData = createChartDataJsonForField(fieldId);
-  var dataArr = chartData.Production;
-  console.log("dataArr");
-  console.log(dataArr);
-
-  labels = Object.keys(dataArr);
-  for(var k in dataArr) {
-    oilData.push(dataArr[k].oilSum);
-    gasData.push(dataArr[k].gasSum);
-  }
-  renderChartForField(oilData, gasData, labels);
-}
-
 // =========================================== RENDER CHART HELPERS ========================================================//
-
-function renderChartForState(oilData, gasData, labels) {
-    var ctx = document.getElementById("stateChartGas").getContext('2d');
-    renderChart(ctx, 'Gas Production', gasData, labels);
-    ctx = document.getElementById("stateChartOil").getContext('2d');
-    renderChart(ctx, 'Oil Production', oilData, labels);
-}
-
 function renderChartForParish(oilData, gasData, labels){
   var ctx = document.getElementById("parishChartGas").getContext('2d');
   renderChart(ctx, 'Gas Production', gasData, labels);
@@ -526,56 +424,6 @@ function renderChart(ctx, chartLabel, data, dataLabels){
       },
   });
 }
-
-// =========================================== PARISH CHART HELPERS ========================================================//
-function createChartDataJsonForParish(parishCode){
-  var summaries = totalProductionByYearByParish(parishCode);
-
-  console.log("summaries");
-  console.log(summaries);
-  var json = '{"ParishProduction": {';
-  if(summaries.length == 0){
-    json += '}}';
-  }
-  else{
-    for(i=0; i < summaries.length; i++){
-      json += '"' + summaries[i].year + '": {';
-      json += '"oilSum":' + summaries[i].oilProd + ',';
-      json += '"gasSum": ' + summaries[i].gasProd + ' },';
-    }
-
-    json = json.substring(0, json.length - 1); //remove trailing comma
-    json += ']}';
-  }
-  console.log("preparse");
-
-
-  console.log(json);
-  var obj = JSON.parse(json);
-  console.log("postparse");
-
-  console.log(obj);
-
-
-  return obj;
-}
-
-function createProdChartForParish() {
-  oilDataParish = [];
-  gasDataParish = [];
-  labelsParish =  [];
-
-  chartData = createChartDataJsonForParish();
-  var dataArr = chartData.ParishProduction;
-
-  labels = Object.keys(dataArr);
-  for(var k in dataArr) {
-    oilData.push(dataArr[k].oilSum);
-    gasData.push(dataArr[k].gasSum);
-  }
-  renderChartForParish(oilData, gasData, labels);
-}
-
 // =========================================== Helpers ========================================================//
 
 function translateToParishCode(countyCode){
@@ -614,19 +462,6 @@ var popupOpts = {
 };
 
 // =========================================== Producer/Injector Helpers ========================================================//
-
-function totalProductionByField(fieldId){
-  var production = 0;
-  for(var well in wellInfo){
-    if(well.WELL_STATUS_CODE == 10 || well.WELL_STATUS_CODE == 9){
-      if(well.FIELD_ID == fieldId){
-        production += sumProduction(well);
-      }
-    }
-  }
-  return production;
-}
-
 function totalProductionByParish(parishCode){
   var production = 0;
   for(var well in wellInfo){
@@ -679,114 +514,6 @@ function totalNumOfInjectorsByParish(parishCode){
   return injectInParish;
 }
 
-function totalProductionByYearByParish(parishCode){
-  var years = new Set();
-  var prodJson = [];
-
-  console.log("prodDetails" + prodDetails.length);
-  for(i=0; i < prodDetails.length; i++){
-    if(prodDetails[i].PARISH_CODE == parishCode){
-      var prodInfo = findParishProdInfo(prodDetails[i].OGP_SEQ_NUM);
-      if(prodInfo.REPORT_DATE == undefined){
-        break;
-      }
-      var year = getYear(prodInfo.REPORT_DATE);
-      if(years.has(year)){ //If year is already in set, total with prev value
-        var index = findCorrectYear(year, prodJson);
-        prodJson[index]['oilProd'] = prodJson[index]['oilProd'] + prodDetails[i].OIL_PRODUCTION;
-        prodJson[index]['gasProd'] = prodJson[index]['gasProd'] + prodDetails[i].GAS_PRODUCTION;
-      }
-      else{ //else add to set
-        years.add(year);
-        item = {};
-        item["year"] = year;
-        item["gasProd"] = prodDetails[i].GAS_PRODUCTION;
-        item["oilProd"] = prodDetails[i].OIL_PRODUCTION;
-
-        prodJson.push(item);
-      }
-    }
-  }
-
-  return prodJson;
-}
-
-function totalProductionByYearByState(){
-  console.log("#totalProductionByYearbyState");
-  var years = new Set();
-  var prodJson = [];
-
-  for(i=0; i < prodDetails.length; i++){
-    var info = findParishProdInfo(prodDetails[i].OGP_SEQ_NUM);
-    console.log("prodInfo");
-    console.log(info);
-    if(info.REPORT_DATE == undefined){
-      break;
-      console.log("undefined!");
-
-    }
-    var year = getYear(info.REPORT_DATE);
-    if(years.has(year)){ //If year is already in set, total with prev value
-      var index = findCorrectYear(year, prodJson);
-      prodJson[index]['oilProd'] = prodJson[index]['oilProd'] + prodDetails[i].OIL_PRODUCTION;
-      prodJson[index]['gasProd'] = prodJson[index]['gasProd'] + prodDetails[i].GAS_PRODUCTION;
-    }
-    else{ //else add to set
-      years.add(year);
-      item = {};
-      item["year"] = year;
-      item["gasProd"] = prodDetails[i].GAS_PRODUCTION;
-      item["oilProd"] = prodDetails[i].OIL_PRODUCTION;
-
-      prodJson.push(item);
-    }
-  }
-
-  return prodJson;
-}
-
-function totalProductionByYearByField(fieldId){
-  console.log("totalProductionByYearByField");
-  var years = new Set();
-  var prodJson = [];
-  var prodInfo = findFieldProdInfo(fieldId, productionInfo);
-
-  console.log(prodInfo.length);
-  for(i=0; i < prodInfo.length; i++){
-    if(prodInfo[i].FIELD_ID == fieldId){
-      console.log("OGP_SEQ_NUM" + prodInfo[i].OGP_SEQ_NUM);
-      prodDetail = findParishProdDetails(prodInfo[i].OGP_SEQ_NUM);
-      if(prodDetail == null){
-        console.log("no details");
-        break;
-      }
-      else{
-        var prodInfo = findParishProdInfo(prodDetails[i].OGP_SEQ_NUM);
-        if(prodInfo.REPORT_DATE == undefined){
-          break;
-        }
-        var year = getYear(prodInfo.REPORT_DATE);
-        if(years.has(year)){ //If year is already in set, total with prev value
-          var index = findCorrectYear(year, prodJson);
-          prodJson[index]['oilProd'] = prodJson[index]['oilProd'] + prodDetail.OIL_PRODUCTION;
-          prodJson[index]['gasProd'] = prodJson[index]['gasProd'] + prodDetail.GAS_PRODUCTION;
-        }
-        else{ //else add to set
-          years.add(year);
-          item = {};
-          item["year"] = year;
-          item["gasProd"] = prodDetail.GAS_PRODUCTION;
-          item["oilProd"] = prodDetail.OIL_PRODUCTION;
-
-          prodJson.push(item);
-        }
-      }
-    }
-  }
-
-  return prodJson;
-}
-
 // =========================================== Populate CSV Arrays ========================================================//
 function populateProdInfo(prodCsv){
   Papa.parse(prodCsv, {
@@ -807,7 +534,7 @@ function populateProdInfo(prodCsv){
       console.log("done loading productionInfo")
       prodInfoDone = true;
       if(prodInfoDone && prodDetailsDone){
-        createProdChartForState();
+        // createProdChartForState();
       }
     }
   });
@@ -831,7 +558,7 @@ function populateProdDetails(prodDetailsCsv){
         console.log("done loading prodDetails")
         prodDetailsDone = true;
         if(prodInfoDone && prodDetailsDone){
-          createProdChartForState();
+          // createProdChartForState();
         }
       }
     });
@@ -882,6 +609,7 @@ function populateFieldParishes(fieldParishCsv){
 // =========================================== Helper Methods for CSVs ========================================================//
 
 function findParishProdDetails(parishCode){
+  console.log("#findParishProdDetails");
   for(i = 0; i < prodDetails.length; i++){
     if(parishCode == prodDetails[i].PARISH_CODE){
       return prodDetails[i];
@@ -890,26 +618,34 @@ function findParishProdDetails(parishCode){
   return null;
 }
 
-function findParishProdInfo(ogpSeqNum){
-  console.log("#findParishProdInfo")
+function findProdInfo(ogpSeqNum){
+  console.log("#findProdInfo")
+  productionInfo = checkProdInfoFormat(prouductionInfo);
   for(i = 0; i < productionInfo.length; i++){
     if(ogpSeqNum == productionInfo[i].OGP_SEQ_NUM){
       return productionInfo[i];
     }
   }
+  console.log("no match" + ogpSeqNum);
   return null;
 }
 
-function findParishProdDetails(ogpSeqNum){
-  for(i = 0; i < prodDetails.length; i++){
-    if(ogpSeqNum == prodDetails[i].OGP_SEQ_NUM){
-      return prodDetails[i];
+function findProdDetails(ogpSeqNum){
+  console.log("#findProdDetails");
+  var prodDetails = [];
+
+  productionDetails = checkProdDetailsFormat(prodDetails);
+  for(i = 0; i < productionDetails.length; i++){
+    if(ogpSeqNum == productionDetails[i].OGP_SEQ_NUM){
+      console.log("match!");
+      prodDetails.push(productionDetails[i]);
     }
   }
-  return null;
+  return prodDetails;
 }
 
 function findWellInfo(wellSerialNum){
+  console.log("#findWellInfo")
   for(i = 0; i < wellInfo.length-1; i++){
     if(wellSerialNum == wellInfo[i].WELL_SERIAL_NUM){
       return wellInfo[i];
@@ -919,6 +655,7 @@ function findWellInfo(wellSerialNum){
 }
 
 function findFieldName(fieldId){
+  console.log("#findFieldName");
   for(i = 0; i < fieldNames.length-1; i++){
     if(fieldId == fieldNames[i].FIELD_ID){
       return fieldNames[i].FIELD_NAME;
@@ -928,6 +665,7 @@ function findFieldName(fieldId){
 }
 
 function findAllFieldsInParish(parishCode){
+  console.log("findAllFieldsInParish");
   var allFields = [];
   for(i = 0; i < fieldParishes.length-1; i++){
     if(parishCode == fieldParishes[i].PARISH_CODE){
@@ -938,6 +676,7 @@ function findAllFieldsInParish(parishCode){
 }
 
 function findAllFields(){
+  console.log("#findAllFields");
   var allFields = [];
   for(i = 0; i < fieldNames.length-1; i++){
     allFields.push(fieldNames[i]);
