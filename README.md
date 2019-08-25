@@ -2,10 +2,16 @@ Well Mapping Application
 for Louisiana State University Petroleum Engineering Department
 
 ### Features
-* point markers are clustered based on zoom level
-* clicking a point cluster will zoom into the extent of underlying Features
-* hovering on point will display Name
-* clicking will display a popupOpts
+* mapping of all production and injection wells in louisiana
+* display of all oil and gas fields in Louisiana
+* Parish boundaries and names are displayed for easy reference
+* charts per well and field to show production information by year for gas and oil charts
+* statewide chart to display production information for the whole state
+* ability to change layers visible on map
+
+### Preparing the Data
+*
+
 
 ### Things to Note
 * the parish boundary is defined by counties.json. If the boundaries change, this will need to be updated.
@@ -19,6 +25,8 @@ for Louisiana State University Petroleum Engineering Department
 
 * [Leaflet](https://github.com/Leaflet/Leaflet)
 * [Leaflet.geoCSV](https://github.com/joker-x/Leaflet.geoCSV)
-* [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster)
 * [Twitter Bootstrap](http://twitter.github.io/bootstrap/)
 * [jQuery](http://jquery.com/)
+
+
+This web portal has been compiled for educational use only, and my not be reproduced without permission. Please contact Jyotsna Sharma (jsharma@lsu.edu) for more information or permissions.

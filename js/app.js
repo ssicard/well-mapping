@@ -8,10 +8,14 @@ var wellCoordsCsv;
 var prevClickedParish;
 var wellInfo = [];
 var prodDetails = [];
-var prodInfo = [];
+var productionInfo = [];
 var parishJson;
 var fieldJson;
 var chartData;
+var prodDetailsDone = false;
+var prodInfoDone = false;
+var fieldJson;
+var fieldBounds = [];
 
 // SETTING MAP VARS //
 var basemap = new L.TileLayer(baseUrl, {maxZoom: 20, attribution: baseAttribution, subdomains: subdomains, opacity: opacity});
@@ -89,20 +93,6 @@ credits.onAdd = function(map){
 credits.setPosition('bottomleft');
 credits.addTo(map);
 
-function zoomToField(fieldId){
-  console.log(fieldId);
-  //search json for feature with FIELD_ID
-  if(fieldJson != undefined){
-    for(var feature in fieldJson){
-
-    }
-  }
-
-  //zoomTofeature
-  function zoomToFeature(e) {
-      map.fitBounds(e.target.getBounds());
-  }
-}
 //=============================== Toggle Layers ==========================================//
 
 function toggleParish(){
@@ -234,6 +224,7 @@ function createParishPopup(parishLayer, feature){
   if (feature.properties) {
     var parishCode = translateToParishCode(feature.properties.COUNTY);
     var details = findParishProdDetails(parishCode);
+    var info = findParishProdInfo(details.OGP_SEQ_NUM);
     popup += '<canvas id="parishChartGas"></canvas><canvas id="parishChartOil"></canvas>';
 
     popup += '<table class="table table-striped table-bordered table-condensed"><tr><th> Parish Name </th><td>'+ feature.properties.NAME +'</td></tr>';
@@ -257,7 +248,7 @@ function createParishPopup(parishLayer, feature){
           popup += "There are no fields in this parish."
         }
       popup += '</td></tr>';
-      popup += '<tr><th> Date Created: </th><td>' + details.CREATE_DATE + '</td></tr>';
+      popup += '<tr><th> Date Created: </th><td>' + info.REPORT_DATE + '</td></tr>';
       popup += '<tr><th> Last Refresh Date: </th><td>' + REFRESH_DATE + '</td></tr>';
       popup += "</table>";
     }
@@ -274,70 +265,67 @@ function createParishPopup(parishLayer, feature){
 }
 
 //=============================== Well Mapping ==========================================//
-var wellMarkers = new L.MarkerClusterGroup();
+// jQuery.getJSON(fieldJsonUrl, function(data){
 
-var wellPoints = L.geoCsv (null, {
-    firstLineTitles: true,
-    fieldSeparator: fieldSeparator,
-    onEachFeature: createWellPopup
-});
 
-var popupOpts = {
-    autoPanPadding: new L.Point(5, 50),
-    autoPan: true,
-    closeOnEscapeKey: true,
-};
-
-function createWellPopup(feature, layer){
-  console.log("Well Serial Num:" + feature.properties.well_serial_num);
-  var well = findWellInfo(feature.properties.well_serial_num);
-  if(well == null){
-    var popup = 'Something went wrong'
-              + feature.properties.well_serial_num;
-  }
-  else{
-    var status = well.WELL_STATUS_CODE;
-    if(status == 9 || status == 10){
-      var popup = '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
-      popup += '<tr><th> Well Name </th><td>' + well.WELL_NAME + '</td></tr>';
-      popup += '<tr><th> Spud Date </th><td>' + well.SPUD_DATE + '</td></tr>';
-
-      if(status == 9){
-        popup += '<tr><th> Producer/Injector </th><td> Injector </td></tr>';
-      }
-      else if(status == 10){
-        popup += '<tr><th> Producer/Injector </th><td> Producer </td></tr>';
-      }
-
-      popup += '<tr><th> Last Refresh Date </th><td>'+ REFRESH_DATE +'</td></tr>';
-
-      var fieldName = findFieldName(well.FIELD_ID);
-      if(fieldName != null){
-        popup += '<tr><th> Field Name </th><td>'+ fieldName +'</td></tr>';
-      }
-      popup += "</table></popup-content>";
-
-    }
-  }
-
-  layer.bindPopup(popup, popupOpts);
-}
-
-var addWellPoints = function() {
-
-    wellMarkers = new L.MarkerClusterGroup(clusterOptions);
-    wellPoints.addData(wellCoordsCsv);
-    wellMarkers.addLayer(wellPoints);
-
-    map.addLayer(wellMarkers);
-    return false;
-};
-
-var removeWellPoints = function() {
-    map.removeLayer(wellMarkers);
-    wellPoints.clearLayers();
-    return false;
-};
+//
+// var wellPoints = L.geoCsv (null, {
+//     firstLineTitles: true,
+//     fieldSeparator: fieldSeparator,
+//     onEachFeature: createWellPopup
+// });
+//
+// var popupOpts = {
+//     autoPanPadding: new L.Point(5, 50),
+//     autoPan: true,
+//     closeOnEscapeKey: true,
+// };
+//
+// function createWellPopup(feature, layer){
+//   var well = findWellInfo(feature.properties.well_serial_num);
+//   if(well == null){
+//     var popup = 'Something went wrong'
+//               + feature.properties.well_serial_num;
+//   }
+//   else{
+//     var status = well.WELL_STATUS_CODE;
+//     if(status == 9 || status == 10){
+//       var popup = '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
+//       popup += '<tr><th> Well Name </th><td>' + well.WELL_NAME + '</td></tr>';
+//       popup += '<tr><th> Spud Date </th><td>' + well.SPUD_DATE + '</td></tr>';
+//
+//       if(status == 9){
+//         popup += '<tr><th> Producer/Injector </th><td> Injector </td></tr>';
+//       }
+//       else if(status == 10){
+//         popup += '<tr><th> Producer/Injector </th><td> Producer </td></tr>';
+//       }
+//
+//       popup += '<tr><th> Last Refresh Date </th><td>'+ REFRESH_DATE +'</td></tr>';
+//
+//       var fieldName = findFieldName(well.FIELD_ID);
+//       if(fieldName != null){
+//         popup += '<tr><th> Field Name </th><td>'+ fieldName +'</td></tr>';
+//       }
+//       popup += "</table></popup-content>";
+//
+//     }
+//   }
+//
+//   layer.bindPopup(popup, popupOpts);
+// }
+//
+// var addWellPoints = function() {
+//     wellPoints.addData(wellCoordsCsv);
+//     map.addLayer(wellPoints);
+//     return false;
+// };
+//
+// var removeWellPoints = function() {
+//     map.removeLayer(wellPoints);
+//     wellPoints.clearLayers();
+//     return false;
+// };
 
 if(typeof(String.prototype.strip) === "undefined") {
     String.prototype.strip = function() {
@@ -345,10 +333,7 @@ if(typeof(String.prototype.strip) === "undefined") {
     };
 }
 
-map.addLayer(wellMarkers);
-
 // =========================================== Load Shapefile ========================================================//
-var fieldJson;
 let fieldStyle = function(feature) {
   var fieldType = feature.properties.Field_Type;
   if(fieldType == "Gas"){
@@ -368,27 +353,9 @@ let fieldStyle = function(feature) {
   }
 }
 
-function createFieldPopup(feature, layer){
-  if (feature.properties) {
-    var fieldId = feature.properties.Field_ID;
-    var popup = '<canvas id="fieldChartGas"></canvas><canvas id="fieldChartOil"></canvas>'
-    popup += '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
-    popup += '<tr><th> Field Name </th><td>'+ feature.properties.Field_Name +'</td></tr>';
-    popup += '<tr><th> Field ID </th><td>'+ feature.properties.Field_ID +'</td></tr>';
-    popup += '<tr><th> Field Type </th><td>'+ feature.properties.Field_Type +'</td></tr>';
-    popup += '<tr><th> Number of Producers </th><td>' + totalNumOfProducersByField(fieldId) + '</td></tr>';
-    popup += '<tr><th> Number of Injectors </th><td>' + totalNumOfInjectorsByField(fieldId) +'</td></tr>';
-    popup += '<tr><th> Total Production </th><td>' + totalProductionByField(fieldId) + '</td></tr>';
-    popup += "</table></popup-content>";
-    layer.bindPopup(popup, popupOpts).on('popupopen', function (popup) {
-      createProdChartForField(fieldId);
-    });;
-  }
-}
-
 jQuery.getJSON(fieldJsonUrl, function(data){
   let geoJSONOptions = {
-    onEachFeature: createFieldPopup,
+    onEachFeature: eachFieldFeature,
     style: fieldStyle
   }
 
@@ -398,7 +365,10 @@ jQuery.getJSON(fieldJsonUrl, function(data){
 
 // =========================================== CHART HELPERS ========================================================//
 function createChartDataJsonForState(){
+  console.log("#createChartDataJsonForState");
   var summaries = totalProductionByYearByState();
+  console.log("summaries");
+  console.log(summaries.length);
 
   var json = '{"Production": {';
   if(summaries.length == 0){
@@ -429,6 +399,9 @@ function createProdChartForState() {
 
   chartData = createChartDataJsonForState();
   var dataArr = chartData.Production;
+  console.log("dataArr");
+  console.log(dataArr);
+
 
   labels = Object.keys(dataArr);
   for(var k in dataArr) {
@@ -713,10 +686,11 @@ function totalProductionByYearByParish(parishCode){
   console.log("prodDetails" + prodDetails.length);
   for(i=0; i < prodDetails.length; i++){
     if(prodDetails[i].PARISH_CODE == parishCode){
-      if(prodDetails[i].CREATE_DATE == undefined){
+      var prodInfo = findParishProdInfo(prodDetails[i].OGP_SEQ_NUM);
+      if(prodInfo.REPORT_DATE == undefined){
         break;
       }
-      var year = getYear(prodDetails[i].CREATE_DATE);
+      var year = getYear(prodInfo.REPORT_DATE);
       if(years.has(year)){ //If year is already in set, total with prev value
         var index = findCorrectYear(year, prodJson);
         prodJson[index]['oilProd'] = prodJson[index]['oilProd'] + prodDetails[i].OIL_PRODUCTION;
@@ -738,14 +712,20 @@ function totalProductionByYearByParish(parishCode){
 }
 
 function totalProductionByYearByState(){
+  console.log("#totalProductionByYearbyState");
   var years = new Set();
   var prodJson = [];
 
   for(i=0; i < prodDetails.length; i++){
-    if(prodDetails[i].CREATE_DATE == undefined){
+    var info = findParishProdInfo(prodDetails[i].OGP_SEQ_NUM);
+    console.log("prodInfo");
+    console.log(info);
+    if(info.REPORT_DATE == undefined){
       break;
+      console.log("undefined!");
+
     }
-    var year = getYear(prodDetails[i].CREATE_DATE);
+    var year = getYear(info.REPORT_DATE);
     if(years.has(year)){ //If year is already in set, total with prev value
       var index = findCorrectYear(year, prodJson);
       prodJson[index]['oilProd'] = prodJson[index]['oilProd'] + prodDetails[i].OIL_PRODUCTION;
@@ -769,7 +749,9 @@ function totalProductionByYearByField(fieldId){
   console.log("totalProductionByYearByField");
   var years = new Set();
   var prodJson = [];
+  var prodInfo = findFieldProdInfo(fieldId, productionInfo);
 
+  console.log(prodInfo.length);
   for(i=0; i < prodInfo.length; i++){
     if(prodInfo[i].FIELD_ID == fieldId){
       console.log("OGP_SEQ_NUM" + prodInfo[i].OGP_SEQ_NUM);
@@ -779,10 +761,11 @@ function totalProductionByYearByField(fieldId){
         break;
       }
       else{
-        if(prodDetail.CREATE_DATE == undefined){
+        var prodInfo = findParishProdInfo(prodDetails[i].OGP_SEQ_NUM);
+        if(prodInfo.REPORT_DATE == undefined){
           break;
         }
-        var year = getYear(prodDetail.CREATE_DATE);
+        var year = getYear(prodInfo.REPORT_DATE);
         if(years.has(year)){ //If year is already in set, total with prev value
           var index = findCorrectYear(year, prodJson);
           prodJson[index]['oilProd'] = prodJson[index]['oilProd'] + prodDetail.OIL_PRODUCTION;
@@ -811,16 +794,21 @@ function populateProdInfo(prodCsv){
     dynamicTyping: true,
     delimiter: "^",
     worker: true,
-    step: function(row){
+    chunk: function(row){
       if(row.data != undefined){
-        prodInfo.push(row.data);
+        productionInfo.push(row.data);
       }
       else {
         console.log("error" + row);
       }
     },
     complete: function(results) {
-      console.log("done loading prodInfo")
+      prouductionInfo = productionInfo[0];
+      console.log("done loading productionInfo")
+      prodInfoDone = true;
+      if(prodInfoDone && prodDetailsDone){
+        createProdChartForState();
+      }
     }
   });
 }
@@ -831,7 +819,7 @@ function populateProdDetails(prodDetailsCsv){
       dynamicTyping: true,
       delimiter: ",",
       worker: true,
-      step: function(row){
+      chunk: function(row){
         if(row.data != undefined){
           prodDetails.push(row.data);
         }
@@ -841,7 +829,10 @@ function populateProdDetails(prodDetailsCsv){
       },
       complete: function(results) {
         console.log("done loading prodDetails")
-        createProdChartForState();
+        prodDetailsDone = true;
+        if(prodInfoDone && prodDetailsDone){
+          createProdChartForState();
+        }
       }
     });
 }
@@ -852,7 +843,7 @@ function populateWellInfo(wellInfoCsv){
     dynamicTyping: true,
     delimiter: "^",
     worker: true,
-    step: function(row){
+    chunk: function(row){
       if(row.data != undefined){
         wellInfo.push(row.data);
       }
@@ -900,9 +891,10 @@ function findParishProdDetails(parishCode){
 }
 
 function findParishProdInfo(ogpSeqNum){
-  for(i = 0; i < prodInfo.length; i++){
-    if(ogpSeqNum == prodInfo[i].OGP_SEQ_NUM){
-      return prodInfo[i];
+  console.log("#findParishProdInfo")
+  for(i = 0; i < productionInfo.length; i++){
+    if(ogpSeqNum == productionInfo[i].OGP_SEQ_NUM){
+      return productionInfo[i];
     }
   }
   return null;
@@ -970,18 +962,6 @@ $(document).init( function() {
     $.ajax ({
         type:'GET',
         dataType:'text',
-        url: prodDetailsUrl,
-        contentType: "text/csv; charset=utf-8",
-        error: function() {
-            alert('Error loading' + prodDetailsUrl);
-        },
-        success: function(csv) {
-            populateProdDetails(csv);
-        }
-    });
-    $.ajax ({
-        type:'GET',
-        dataType:'text',
         url: prodUrl,
         contentType: "text/csv; charset=utf-8",
         error: function() {
@@ -989,6 +969,18 @@ $(document).init( function() {
         },
         success: function(csv) {
             populateProdInfo(csv);
+        }
+    });
+    $.ajax ({
+        type:'GET',
+        dataType:'text',
+        url: prodDetailsUrl,
+        contentType: "text/csv; charset=utf-8",
+        error: function() {
+            alert('Error loading' + prodDetailsUrl);
+        },
+        success: function(csv) {
+            populateProdDetails(csv);
         }
     });
 });
