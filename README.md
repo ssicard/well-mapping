@@ -24,7 +24,7 @@ for Louisiana State University Petroleum Engineering Department
 ### Thanks to...
 
 * [Leaflet](https://github.com/Leaflet/Leaflet)
-* [Leaflet.geoCSV](https://github.com/joker-x/Leaflet.geoCSV)
+* [Leaflet.TileLayer.GeoJSON](https://github.com/glenrobertson/leaflet-tilelayer-geojson)
 * [Twitter Bootstrap](http://twitter.github.io/bootstrap/)
 * [jQuery](http://jquery.com/)
 

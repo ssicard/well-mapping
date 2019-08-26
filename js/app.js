@@ -4,9 +4,10 @@ var oilFieldColorOpaque = "rgba(245,66,66, .2)";
 var gasFieldColor = "#10a14c";
 var gasFieldColorOpaque = "rgba(16,161,76, .2)";
 var parishColor = "#FDD023";
-var wellCoordsCsv;
+var wellJson;
 var prevClickedParish;
 var wellInfo = [];
+var wellCoords = [];
 var prodDetails = [];
 var productionInfo = [];
 var parishJson;
@@ -109,10 +110,10 @@ function toggleParish(){
 function toggleWell(){
   var checkbox = document.getElementById("wellToggle");
   if(checkbox.checked == true){
-    addWellPoints();
+    map.addLayer(wellJson);
   }
   else {
-    removeWellPoints();
+    map.removeLayer(wellJson);
   }
   orderLayers();
 }
@@ -171,167 +172,26 @@ jQuery.getJSON(parishesUrl, function(data){
   }
 });
 
-function onEachFeature(feature, parishLayer) {
-  var center = parishLayer.getBounds().getCenter();
-  var marker = L.marker(center, {
-      icon: L.divIcon({
-        iconAnchor: [20, 20],
-        iconSize: [40, 40]
-      }),
-      opacity: 0
-  }).bindTooltip(parishLayer.feature.properties.NAME, {
-    permanent:true,
-    direction: 'center',
-    className: 'parish-name'
-    // opacity: .5
-  }).addTo(map);
-    parishLayer.on({
-        click: displayProdDataByParish,
-    });
-}
-
-function highlightFeature(parishLayer) {
-  parishLayer.setStyle({
-    weight: 5,
-    dashArray: '',
-    fillOpacity: 0.7
-  });
-
-  prevClickedParish = parishLayer;
-}
-
-function resetHighlight() {
-  parishJson.resetStyle(prevClickedParish);
-}
-
-function displayProdDataByParish(e) {
-  var parishLayer = e.target;
-  if(prevClickedParish!=null){
-    resetHighlight();
-  }
-  var parishCode = translateToParishCode(parishLayer.feature.properties.COUNTY);
-  if(parishCode > 0 && parishCode < 69){
-    highlightFeature(parishLayer);
-    createParishPopup(parishLayer, parishLayer.feature);
-    // createProdChartForParish(translateToParishCode(parishLayer.feature.properties.COUNTY));
-  }
-}
-
-function createParishPopup(parishLayer, feature){
-  var popup = '<div class="popup-content">';
-  popup += '<h6>Parish Production Information</h6>';
-
-  if (feature.properties) {
-    var parishCode = translateToParishCode(feature.properties.COUNTY);
-    var details = findParishProdDetails(parishCode);
-    var info = findParishProdInfo(details.OGP_SEQ_NUM);
-    popup += '<canvas id="parishChartGas"></canvas><canvas id="parishChartOil"></canvas>';
-
-    popup += '<table class="table table-striped table-bordered table-condensed"><tr><th> Parish Name </th><td>'+ feature.properties.NAME +'</td></tr>';
-
-    if(details==null){
-      popup += '</table>There is no information for this parish';
-    }
-    else{
-      // var information = findParishProdInfo(details.OGP_SEQ_NUM);
-      popup += '<tr><th> Number of Producers: </th><td>' + totalNumOfProducersByParish(parishCode) + '</td></tr>';
-      popup += '<tr><th> Number of Injectors: </th><td>' + totalNumOfInjectorsByParish(parishCode) + '</td></tr>';
-      popup += '<tr><th> Production in Parish: </th><td>' + totalProductionByParish(parishCode) + '</td></tr>';
-      popup += '<tr><th> Fields in Parish: </th><td>';
-        var fields = findAllFieldsInParish(parishCode);
-        if(fields.length > 1){
-          for(var field in fields){
-            popup += field.FIELD_NAME + '</br>';
-          }
-        }
-        else{
-          popup += "There are no fields in this parish."
-        }
-      popup += '</td></tr>';
-      popup += '<tr><th> Date Created: </th><td>' + info.REPORT_DATE + '</td></tr>';
-      popup += '<tr><th> Last Refresh Date: </th><td>' + REFRESH_DATE + '</td></tr>';
-      popup += "</table>";
-    }
-  }
-  else{
-    popup += 'There is no information for this parish.';
-  }
-  popup += "</popup-content>";
-  parishLayer.bindPopup(popup, popupOpts);
-
-  parishLayer.bindPopup(popup, popupOpts).on('popupopen', function (popup) {
-    createProdChartForParish(parishCode);
-  });
-}
-
-//=============================== Well Mapping ==========================================//
-// jQuery.getJSON(fieldJsonUrl, function(data){
-
-
-//
-// var wellPoints = L.geoCsv (null, {
-//     firstLineTitles: true,
-//     fieldSeparator: fieldSeparator,
-//     onEachFeature: createWellPopup
+//=============================== Well Layer ==========================================//
+// jQuery.getJSON(wellCoordsJsonUrl, function(data){
+//   wellJson = L.geoJson(data, {
+//     onEachFeature: eachWellFeature
+//   }).addTo(map);
 // });
-//
-// var popupOpts = {
-//     autoPanPadding: new L.Point(5, 50),
-//     autoPan: true,
-//     closeOnEscapeKey: true,
-// };
-//
-// function createWellPopup(feature, layer){
-//   var well = findWellInfo(feature.properties.well_serial_num);
-//   if(well == null){
-//     var popup = 'Something went wrong'
-//               + feature.properties.well_serial_num;
-//   }
-//   else{
-//     var status = well.WELL_STATUS_CODE;
-//     if(status == 9 || status == 10){
-//       var popup = '<div class="popup-content"><table class="table table-striped table-bordered table-condensed">';
-//       popup += '<tr><th> Well Name </th><td>' + well.WELL_NAME + '</td></tr>';
-//       popup += '<tr><th> Spud Date </th><td>' + well.SPUD_DATE + '</td></tr>';
-//
-//       if(status == 9){
-//         popup += '<tr><th> Producer/Injector </th><td> Injector </td></tr>';
-//       }
-//       else if(status == 10){
-//         popup += '<tr><th> Producer/Injector </th><td> Producer </td></tr>';
-//       }
-//
-//       popup += '<tr><th> Last Refresh Date </th><td>'+ REFRESH_DATE +'</td></tr>';
-//
-//       var fieldName = findFieldName(well.FIELD_ID);
-//       if(fieldName != null){
-//         popup += '<tr><th> Field Name </th><td>'+ fieldName +'</td></tr>';
-//       }
-//       popup += "</table></popup-content>";
-//
-//     }
-//   }
-//
-//   layer.bindPopup(popup, popupOpts);
-// }
-//
-// var addWellPoints = function() {
-//     wellPoints.addData(wellCoordsCsv);
-//     map.addLayer(wellPoints);
-//     return false;
-// };
-//
-// var removeWellPoints = function() {
-//     map.removeLayer(wellPoints);
-//     wellPoints.clearLayers();
-//     return false;
-// };
 
-if(typeof(String.prototype.strip) === "undefined") {
-    String.prototype.strip = function() {
-        return String(this).replace(/^\s+|\s+$/g, '');
-    };
+let geojsonTileLayerOpts = function(feature){
+  return {
+    clipTiles: true,
+    unique: function(feature){
+      return feature.id;
+    }
+  }
 }
+
+var wellTileLayer = new L.TileLayer.GeoJSON(wellCoordsJsonUrl, geojsonTileLayerOpts, {
+  onEachFeature: eachWellFeature
+});
+// map.addLayer(wellTileLayer);
 
 // =========================================== Load Shapefile ========================================================//
 let fieldStyle = function(feature) {
@@ -362,21 +222,7 @@ jQuery.getJSON(fieldJsonUrl, function(data){
   fieldJson = L.geoJson(data, geoJSONOptions);
 });
 
-// =========================================== RENDER CHART HELPERS ========================================================//
-function renderChartForParish(oilData, gasData, labels){
-  var ctx = document.getElementById("parishChartGas").getContext('2d');
-  renderChart(ctx, 'Gas Production', gasData, labels);
-  var ctx = document.getElementById("parishChartOil").getContext('2d');
-  renderChart(ctx, 'Oil Production', oilData, labels);
-}
-
-function renderChartForField(oilData, gasData, labels){
-  var ctx = document.getElementById("fieldChartGas").getContext('2d');
-  renderChart(ctx, 'Gas Production', gasData, labels);
-  var ctx = document.getElementById("fieldChartOil").getContext('2d');
-  renderChart(ctx, 'Oil Production', oilData, labels);
-}
-
+// =========================================== RENDER CHART ========================================================//
 function renderChart(ctx, chartLabel, data, dataLabels){
   if(chartLabel == 'Oil Production'){
     fieldColor = oilFieldColor;
@@ -424,31 +270,8 @@ function renderChart(ctx, chartLabel, data, dataLabels){
       },
   });
 }
+
 // =========================================== Helpers ========================================================//
-
-function translateToParishCode(countyCode){
-  code = parseInt(countyCode);
-  return (code+001)/2;
-}
-
-function findCorrectYear(year, prodJson){
-  for(var entry in prodJson){
-    if(prodJson[entry].year == year){
-      return entry;
-    }
-  }
-  return null;
-}
-
-function sumProduction(prodDetail){
-  return prodDetail.GAS_PRODUCTION + prodDetail.OIL_PRODUCTION;
-}
-
-function getYear(date){
-  if(date != null){
-    return date.replace(/\d+-\w+-/, "");
-  }
-}
 
 if(typeof(String.prototype.strip) === "undefined") {
     String.prototype.strip = function() {
@@ -463,6 +286,7 @@ var popupOpts = {
 
 // =========================================== Producer/Injector Helpers ========================================================//
 function totalProductionByParish(parishCode){
+  console.log("#totalProductionByParish");
   var production = 0;
   for(var well in wellInfo){
     if(well.WELL_STATUS_CODE == 10 || well.WELL_STATUS_CODE == 9){
@@ -474,27 +298,9 @@ function totalProductionByParish(parishCode){
   return production;
 }
 
-function totalNumOfProducersByField(fieldId){
-  var prodInField = 0;
-  for(var well in wellInfo){
-      if(well.FIELD_ID == fieldId && well.WELL_STATUS_CODE == 10){
-        prodInField++;
-      }
-  }
-  return prodInField;
-}
-
-function totalNumOfInjectorsByField(fieldId){
-  var injectInField = 0;
-  for(var well in wellInfo){
-      if(well.FIELD_ID == fieldId && well.WELL_STATUS_CODE == 10){
-        injectInField++;
-      }
-  }
-  return injectInField;
-}
-
 function totalNumOfProducersByParish(parishCode){
+  console.log("#totalNumOfProducersByParish");
+
   var prodInParish = 0;
   for(var well in wellInfo){
       if(well.PARISH_CODE == parishCode && well.WELL_STATUS_CODE == 10){
@@ -505,6 +311,8 @@ function totalNumOfProducersByParish(parishCode){
 }
 
 function totalNumOfInjectorsByParish(parishCode){
+  console.log("#totalNumOfInjectorsByParish");
+
   var injectInParish = 0;
   for(var well in wellInfo){
       if(well.PARISH_CODE == parishCode && well.WELL_STATUS_CODE == 9){
@@ -530,7 +338,7 @@ function populateProdInfo(prodCsv){
       }
     },
     complete: function(results) {
-      prouductionInfo = productionInfo[0];
+      prouductionInfo = checkProdInfoFormat(productionInfo);
       console.log("done loading productionInfo")
       prodInfoDone = true;
       if(prodInfoDone && prodDetailsDone){
@@ -555,6 +363,7 @@ function populateProdDetails(prodDetailsCsv){
         }
       },
       complete: function(results) {
+        prodDetails = checkProdDetailsFormat(prodDetails);
         console.log("done loading prodDetails")
         prodDetailsDone = true;
         if(prodInfoDone && prodDetailsDone){
@@ -579,7 +388,26 @@ function populateWellInfo(wellInfoCsv){
       }
     },
     complete: function() {
+      wellInfo = checkWellInfoFormat(wellInfo);
       console.log("done loading wellInfo");
+    }
+  })
+}
+
+function populateWellCoords(wellCoordsCsv){
+  Papa.parse(wellCoordsCsv, {
+    header:true,
+    dynamicTyping: true,
+    delimiter: ",",
+    worker: true,
+    chunk: function(row){
+      if(row.data != undefined){
+        wellCoords.push(row.data);
+      }
+    },
+    complete: function() {
+      wellCoords = checkWellCoordsFormat(wellCoords);
+      console.log("done loading wellCoords");
     }
   })
 }
@@ -644,16 +472,6 @@ function findProdDetails(ogpSeqNum){
   return prodDetails;
 }
 
-function findWellInfo(wellSerialNum){
-  console.log("#findWellInfo")
-  for(i = 0; i < wellInfo.length-1; i++){
-    if(wellSerialNum == wellInfo[i].WELL_SERIAL_NUM){
-      return wellInfo[i];
-    }
-  }
-  return null;
-}
-
 function findFieldName(fieldId){
   console.log("#findFieldName");
   for(i = 0; i < fieldNames.length-1; i++){
@@ -671,15 +489,6 @@ function findAllFieldsInParish(parishCode){
     if(parishCode == fieldParishes[i].PARISH_CODE){
       allFields.push(fieldParishes[i].FIELD_ID);
     }
-  }
-  return allFields;
-}
-
-function findAllFields(){
-  console.log("#findAllFields");
-  var allFields = [];
-  for(i = 0; i < fieldNames.length-1; i++){
-    allFields.push(fieldNames[i]);
   }
   return allFields;
 }
@@ -722,6 +531,18 @@ $(document).init( function() {
             populateProdDetails(csv);
         }
     });
+    $.ajax ({
+        type:'GET',
+        dataType:'text',
+        url: wellCoordsUrl,
+        contentType: "text/csv; charset=utf-8",
+        error: function() {
+            alert('Error loading' + wellCoordsUrl);
+        },
+        success: function(csv) {
+          populateWellCoords(csv);
+        }
+    });
 });
 
 $(document).ready( function() {
@@ -747,18 +568,6 @@ $(document).ready( function() {
         },
         success: function(csv) {
             populateFieldParishes(csv);
-        }
-    });
-    $.ajax ({
-        type:'GET',
-        dataType:'text',
-        url: wellCoordsUrl,
-        contentType: "text/csv; charset=utf-8",
-        error: function() {
-            alert('Error loading' + wellCoordsUrl);
-        },
-        success: function(csv) {
-            wellCoordsCsv = csv;
         }
     });
 });

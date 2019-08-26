@@ -12,6 +12,7 @@ var baseUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 var parishesUrl = 'data/counties.json'
 var wellUrl = 'data/f_wells.csv';
 var wellCoordsUrl = 'data/f_well_surface_coords.csv';
+var wellCoordsJsonUrl = 'data/f_well_surface_coords.geojson';
 var prodUrl = 'data/f_oil_gas_productions.csv';
 var prodDetailsUrl = 'data/f_oil_gas_production_details.csv';
 var fieldNamesUrl = 'data/f_fields.csv';

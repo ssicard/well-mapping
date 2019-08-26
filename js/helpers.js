@@ -1,15 +1,48 @@
 function checkProdInfoFormat(productionInfo){
-  if(productionInfo.length == 1){
-    //its still the json in the JSON
-    return productionInfo[0];
-  }
-  return productionInfo;
+  return checkArrFormat(productionInfo);
 }
 
 function checkProdDetailsFormat(productionDetails){
-  if(productionDetails.length == 1){
+  return checkArrFormat(productionDetails);
+}
+
+function checkWellCoordsFormat(wellCoords){
+  return checkArrFormat(wellCoords);
+}
+
+function checkWellInfoFormat(wellInfo){
+  return checkArrFormat(wellInfo);
+}
+
+function checkArrFormat(array){
+  if(array.length == 1){
     //its still the json in the JSON
-    return productionDetails[0];
+    return wellCoords[0];
   }
-  return productionDetails;
+  return wellCoords;
+}
+
+function translateToParishCode(countyCode){
+  code = parseInt(countyCode);
+  return (code+001)/2;
+}
+
+
+function findCorrectYear(year, prodJson){
+  for(var entry in prodJson){
+    if(prodJson[entry].year == year){
+      return entry;
+    }
+  }
+  return null;
+}
+
+function sumProduction(prodDetail){
+  return prodDetail.GAS_PRODUCTION + prodDetail.OIL_PRODUCTION;
+}
+
+function getYear(date){
+  if(date != null){
+    return date.replace(/\d+-\w+-/, "");
+  }
 }

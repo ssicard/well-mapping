@@ -20,39 +20,44 @@ function createProdChartForField(fieldId) {
 }
 
 
+function renderChartForField(oilData, gasData, labels){
+  var ctx = document.getElementById("fieldChartGas").getContext('2d');
+  renderChart(ctx, 'Gas Production', gasData, labels);
+  var ctx = document.getElementById("fieldChartOil").getContext('2d');
+  renderChart(ctx, 'Oil Production', oilData, labels);
+}
+
 function totalProductionByYearByField(fieldId){
   console.log("#totalProductionByYearByField");
   var years = new Set();
   var prodJson = [];
   var fieldProdInfo = findFieldProdInfo(fieldId, productionInfo);
-
-  console.log(fieldProdInfo[0]);
   var prodInfo = fieldProdInfo[0];
   var prodDetails = findProdDetails(prodInfo.OGP_SEQ_NUM);
-  console.log(prodInfo);
   console.log(prodDetails);
   if(prodDetails.length > 0){
     for(j = 0; j < prodDetails.length; j++){
+      var prodDetail = prodDetails[i];
+      if(prodInfo.REPORT_DATE != undefined){
+        var year = getYear(prodInfo.REPORT_DATE);
+        if(years.has(year)){ //If year is already in set, total with prev value
+          var index = findCorrectYear(year, prodJson);
+          prodJson[index]['oilProd'] = prodJson[index]['oilProd'] + prodInfo.OIL_PRODUCTION;
+          prodJson[index]['gasProd'] = prodJson[index]['gasProd'] + prodInfo.GAS_PRODUCTION;
+        }
+        else{ //else add to set
+          years.add(year);
+          item = {};
+          item["year"] = year;
+          item["gasProd"] = prodDetail.GAS_PRODUCTION;
+          item["oilProd"] = prodDetail.OIL_PRODUCTION;
 
-    }
-    if(prodInfo.REPORT_DATE == undefined){
-      console.log("no report date for field OGP_SEQ_NUM: " + prodInfo.OGP_SEQ_NUM);
-      break;
-    }
-    var year = getYear(prodInfo.REPORT_DATE);
-    if(years.has(year)){ //If year is already in set, total with prev value
-      var index = findCorrectYear(year, prodJson);
-      prodJson[index]['oilProd'] = prodJson[index]['oilProd'] + prodInfo.OIL_PRODUCTION;
-      prodJson[index]['gasProd'] = prodJson[index]['gasProd'] + prodInfo.GAS_PRODUCTION;
-    }
-    else{ //else add to set
-      years.add(year);
-      item = {};
-      item["year"] = year;
-      item["gasProd"] = prodDetail.GAS_PRODUCTION;
-      item["oilProd"] = prodDetail.OIL_PRODUCTION;
-
-      prodJson.push(item);
+          prodJson.push(item);
+        }
+      }
+      else{
+        console.log("no report date for field OGP_SEQ_NUM: " + prodInfo.OGP_SEQ_NUM);
+      }
     }
   }
   else{

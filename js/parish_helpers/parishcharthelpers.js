@@ -31,6 +31,13 @@ function createChartDataJsonForParish(parishCode){
   return obj;
 }
 
+function renderChartForParish(oilData, gasData, labels){
+  var ctx = document.getElementById("parishChartGas").getContext('2d');
+  renderChart(ctx, 'Gas Production', gasData, labels);
+  var ctx = document.getElementById("parishChartOil").getContext('2d');
+  renderChart(ctx, 'Oil Production', oilData, labels);
+}
+
 function createProdChartForParish() {
   console.log("#createProdChartForParish")
   oilDataParish = [];
