@@ -179,18 +179,15 @@ jQuery.getJSON(parishesUrl, function(data){
 //   }).addTo(map);
 // });
 
-let geojsonTileLayerOpts = function(feature){
-  return {
-    clipTiles: true,
-    unique: function(feature){
-      return feature.id;
-    }
+var wellTileLayer = new L.TileLayer.GeoJSON(wellCoordsJsonUrl, {
+  clipTiles: true,
+  unique: function(feature){
+    return feature.id;
+  }}, 
+  {
+    onEachFeature: eachWellFeature
   }
-}
-
-var wellTileLayer = new L.TileLayer.GeoJSON(wellCoordsJsonUrl, geojsonTileLayerOpts, {
-  onEachFeature: eachWellFeature
-});
+);
 // map.addLayer(wellTileLayer);
 
 // =========================================== Load Shapefile ========================================================//
