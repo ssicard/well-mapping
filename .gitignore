@@ -1,6 +1,2 @@
 .~lock.*.csv#
 *.txt
-*.csv
-*.json
-*.geojson
-data/*
