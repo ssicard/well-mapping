@@ -17,15 +17,13 @@ var prodDetailsDone = false;
 var prodInfoDone = false;
 var fieldJson;
 var fieldBounds = [];
+var wellCoordsCsv;
 
 // SETTING MAP VARS //
-var basemap = new L.TileLayer(baseUrl, {maxZoom: 20, attribution: baseAttribution, subdomains: subdomains, opacity: opacity});
-var center = new L.LatLng(0, 0);
-var map = new L.Map('map', {
-  center: center,
-  zoomControl: false,
-  layers: [basemap]
+var map = new L.map('map', {
+  zoomControl: false
 });
+L.tileLayer(baseUrl, {maxZoom: 20, attribution: baseAttribution}).addTo(map);
 
 //=============================== Map Controls ==========================================//
 var title = L.control();
@@ -110,10 +108,10 @@ function toggleParish(){
 function toggleWell(){
   var checkbox = document.getElementById("wellToggle");
   if(checkbox.checked == true){
-    map.addLayer(wellJson);
+    addWellsToMap();
   }
   else {
-    map.removeLayer(wellJson);
+    removeWellPoints();
   }
   orderLayers();
 }
@@ -173,22 +171,18 @@ jQuery.getJSON(parishesUrl, function(data){
 });
 
 //=============================== Well Layer ==========================================//
-// jQuery.getJSON(wellCoordsJsonUrl, function(data){
-//   wellJson = L.geoJson(data, {
-//     onEachFeature: eachWellFeature
-//   }).addTo(map);
-// });
-
-var wellTileLayer = new L.TileLayer.GeoJSON(wellCoordsJsonUrl, {
-  clipTiles: true,
-  unique: function(feature){
-    return feature.id;
-  }}, 
-  {
-    onEachFeature: eachWellFeature
+function addWellsToMap() {
+  for (var i = 0; i < wellCoords.length; i++) {
+    var wellLocation = L.latLng(wellCoords[i].lat, wellCoords[i].long);
+    if(wellLocation != null){
+      if(wellCoords[i].lat > 28 && wellCoords[i].lat < 33 && wellCoords[i].long < -87 && wellCoords[i].long > -94.1){ //this is here as a temporary filter because the data has multiple entries for each well point
+        var test = L.circleMarker(wellLocation).addTo(map).bindPopup("s/n: " + wellCoords[i].WELL_SERIAL_NUM + "\n lat: " + wellCoords[i].lat + "\n long: " + wellCoords[i].long);
+      }
+    }
   }
-);
-// map.addLayer(wellTileLayer);
+  console.log(test);
+  console.log("done loading points");
+}
 
 // =========================================== Load Shapefile ========================================================//
 let fieldStyle = function(feature) {
@@ -537,6 +531,7 @@ $(document).init( function() {
             alert('Error loading' + wellCoordsUrl);
         },
         success: function(csv) {
+          wellCoordsCsv = csv;
           populateWellCoords(csv);
         }
     });
