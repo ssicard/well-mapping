@@ -12,7 +12,29 @@
     <link rel="stylesheet" href="css/main.css" />
   </head>
   <body>
+    <div id="myModal" class="modal">
+      <div class="modal-header">Louisiana Oil and Gas Portal</div>
+      <div class="modal-content">
+        <p>
+          This website is intended to provide general information about the oil and gas resources in Louisiana. It is designed to be an educational tool and should not be used for any other purposes. </br></br>
+
+          The data is sourced form the oil and gas production database maintained by the Louisiana Department of Natural Resources. Data quantity may vary and require further work to achieve desired accuracy. <b> We are not liable for data accuracy or use of these data. </b> </br></br>
+
+          If these maps or data are used for distribution or publication, this source must be referenced. For questions about this web portal please contact: </br></br>
+
+            <b> Dr. Jyotsna Sharma </b> </br>
+            Assistant Professor, Devon Energy Career Development Professor </br>
+            Craft and Hawkins Department of Petroleum Engineering </br>
+            Louisiana State University </br>
+            3213H Patrick F. Taylor Hall, Baton Rouge, LA 70803 </br>
+            Phone: 225-578-6042 | Email: jsharma@su.edu
+        </p>
+        </br>
+        <span class="agree">Agree</span>
+      </div>
+    </div>
       <div id="map"></div>
+
       <div id="loader"></div>
 
       <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
@@ -47,6 +69,7 @@
       <script src="js/parish_helpers/parishmaphelpers.js"></script>
       <script src="js/parish_helpers/parishcharthelpers.js"></script>
 
+      <script src="js/popup.js"></script>
       <script src="js/app.js"></script>
   </body>
 </html>

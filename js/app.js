@@ -17,7 +17,6 @@ var prodDetailsDone = false;
 var prodInfoDone = false;
 var fieldJson;
 var fieldBounds = [];
-var wellCoordsCsv;
 
 // SETTING MAP VARS //
 var map = new L.map('map', {
@@ -111,7 +110,7 @@ function toggleWell(){
     addWellsToMap();
   }
   else {
-    removeWellPoints();
+    console.log("TODO");
   }
   orderLayers();
 }
@@ -176,11 +175,16 @@ function addWellsToMap() {
     var wellLocation = L.latLng(wellCoords[i].lat, wellCoords[i].long);
     if(wellLocation != null){
       if(wellCoords[i].lat > 28 && wellCoords[i].lat < 33 && wellCoords[i].long < -87 && wellCoords[i].long > -94.1){ //this is here as a temporary filter because the data has multiple entries for each well point
-        var test = L.circleMarker(wellLocation).addTo(map).bindPopup("s/n: " + wellCoords[i].WELL_SERIAL_NUM + "\n lat: " + wellCoords[i].lat + "\n long: " + wellCoords[i].long);
+        // popupContent = createWellPopup(wellCoords[i].WELL_SERIAL_NUM);
+        var test = L.circleMarker(wellLocation).addTo(map);//.bindPopup("hello");
+        test.on('click', function(e){
+          console.log("click!");
+          test.bindPopup('something else');
+          test.openPopup();
+        });
       }
     }
   }
-  console.log(test);
   console.log("done loading points");
 }
 
@@ -318,7 +322,7 @@ function populateProdInfo(prodCsv){
   Papa.parse(prodCsv, {
     header: true,
     dynamicTyping: true,
-    delimiter: "^",
+    delimiter: ",",
     worker: true,
     chunk: function(row){
       if(row.data != undefined){
@@ -368,7 +372,7 @@ function populateWellInfo(wellInfoCsv){
   Papa.parse(wellInfoCsv, {
     header:true,
     dynamicTyping: true,
-    delimiter: "^",
+    delimiter: ",",
     worker: true,
     chunk: function(row){
       if(row.data != undefined){
@@ -486,6 +490,7 @@ function findAllFieldsInParish(parishCode){
 
 //=============================================== File Loading =============================================================//
 $(document).init( function() {
+    modal.style.display = "block"; //display popup
     $.ajax ({
         type:'GET',
         dataType:'text',
@@ -531,7 +536,6 @@ $(document).init( function() {
             alert('Error loading' + wellCoordsUrl);
         },
         success: function(csv) {
-          wellCoordsCsv = csv;
           populateWellCoords(csv);
         }
     });
