@@ -14,7 +14,7 @@ function createFieldPopup(feature, layer){
     popup += "</table></popup-content>";
     layer.bindPopup(popup, popupOpts).on('popupopen', function (popup) {
       createProdChartForField(fieldId);
-    });;
+    });
   }
 }
 

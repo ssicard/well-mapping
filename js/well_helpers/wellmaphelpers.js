@@ -5,11 +5,11 @@ var popupOpts = {
     closeOnEscapeKey: true,
 };
 
-function createWellPopup(feature, layer){
-  var well = findWellInfo(feature.properties.well_serial_num);
+function createWellPopup(wellSerialNum){
+  var well = findWellInfo(wellSerialNum);
   if(well == null){
     var popup = 'Something went wrong'
-              + feature.properties.well_serial_num;
+              + wellSerialNum;
   }
   else{
     var status = well.WELL_STATUS_CODE;
@@ -32,14 +32,7 @@ function createWellPopup(feature, layer){
         popup += '<tr><th> Field Name </th><td>'+ fieldName +'</td></tr>';
       }
       popup += "</table></popup-content>";
-
     }
   }
-
-  layer.bindPopup(popup, popupOpts);
-}
-
-
-function eachWellFeature(feature, layer){
-  createWellPopup(feature, layer);
+  return popup;
 }

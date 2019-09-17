@@ -1,2 +1,6 @@
 .~lock.*.csv#
 *.txt
+data/*
+*.json
+*.csv
+

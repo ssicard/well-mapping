@@ -12,7 +12,6 @@ function totalProductionByField(fieldId){
 }
 
 function findAllFields(){
-  console.log("#findAllFields");
   var allFields = [];
   for(i = 0; i < fieldNames.length-1; i++){
     allFields.push(fieldNames[i]);

@@ -17,9 +17,9 @@ function checkWellInfoFormat(wellInfo){
 function checkArrFormat(array){
   if(array.length == 1){
     //its still the json in the JSON
-    return wellCoords[0];
+    return array[0];
   }
-  return wellCoords;
+  return array;
 }
 
 function translateToParishCode(countyCode){
