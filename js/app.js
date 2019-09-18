@@ -43,7 +43,7 @@ L.control.zoom({
 var prodChartBox = L.control();
 prodChartBox.onAdd = function(map) {
   this._div = L.DomUtil.create('div', 'prodChartBox');
-  this._div.innerHTML = '<canvas id="stateChartGas"></canvas><canvas id="stateChartOil"></canvas>';
+  this._div.innerHTML = '<img id="stateChart" src="./assets/img/stateChart.png" title="LSU Oil and Gas Production" alt="LSU Oil and Gas Production"></img>';
   return this._div;
 }
 prodChartBox.setPosition('bottomright');

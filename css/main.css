@@ -171,6 +171,11 @@ li:hover {
     display:none;
 }
 
+#stateChart {
+  width: 500px;
+  height: 250px;
+}
+
 
 /* The Modal (background) */
 .modal {
